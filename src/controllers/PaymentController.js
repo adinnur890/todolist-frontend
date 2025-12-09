@@ -2,7 +2,7 @@ import axios from "axios";
 import Swal from "sweetalert2";
 import AuthController from "./AuthController";
 
-const baseUrl = "http://localhost:8000/api";
+const baseUrl = "https://todolistpremium.ct.ws/backend_tododin/public/api";
 
 const PaymentController = () => {
   const createOrder = async (planId = 1) => {
@@ -94,7 +94,7 @@ const PaymentController = () => {
               text: "Pembayaran berhasil. Invoice akan segera didownload!",
             }).then(() => {
               const orderId = result.order_id.split("-")[0];
-              window.open(`http://localhost:8000/api/invoice/download/${orderId}`, "_blank");
+              window.open(`https://todolistpremium.ct.ws/backend_tododin/public/api/invoice/download/${orderId}`, "_blank");
 
               const { logout } = AuthController.getState();
               logout();

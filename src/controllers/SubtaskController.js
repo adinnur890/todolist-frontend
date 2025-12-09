@@ -1,7 +1,7 @@
 import axios from "axios";
 import { create } from "zustand";
 
-const api = "http://localhost:8000/api";
+const api = "https://todolistpremium.ct.ws/backend_tododin/public/api";
 
 const handleUnauthorized = (error) => {
   if (error.response?.status === 401) {
