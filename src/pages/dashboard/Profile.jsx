@@ -4,52 +4,52 @@ import Swal from "sweetalert2";
 import AuthController from "../../controllers/AuthController";
 
 function Profile() {
-  const [user, setUser] = useState({
+  const user = AuthController((state) => state.user);
+  const setUser = AuthController((state) => state.setUser);
+  const [loading, setLoading] = useState(false);
+  const [form, setForm] = useState({
     name: "",
     email: "",
-    avatar: null,
+    password: "",
   });
-  const [avatarPreview, setAvatarPreview] = useState(null);
-  const [avatarFile, setAvatarFile] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [avatar, setAvatar] = useState(null);
+  const [avatarPreview, setAvatarPreview] = useState("/src/assets/profile-default.png");
 
   useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        const res = await axios.get(`${import.meta.env.VITE_API_URL}/user/me`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        setUser(res.data);
-        if (res.data.avatar) {
-          setAvatarPreview(
-            `${import.meta.env.VITE_API_URL_IMAGE}/storage/${res.data.avatar}`
-          );
-        }
-      } catch (err) {
-        console.error("Gagal memuat profil", err);
-      } finally {
-        setLoading(false);
+    if (user) {
+      setForm({
+        name: user.name || "",
+        email: user.email || "",
+        password: "",
+      });
+      if (user.avatar) {
+        setAvatarPreview(`http://localhost:8000/storage/${user.avatar}`);
       }
-    };
-
-    fetchUser();
-  }, []);
+    }
+  }, [user]);
 
   const handleAvatarChange = (e) => {
     const file = e.target.files[0];
-    setAvatarFile(file);
-    setAvatarPreview(URL.createObjectURL(file));
+    if (file) {
+      setAvatar(file);
+      setAvatarPreview(URL.createObjectURL(file));
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (form.password && form.password.length < 6) {
+      Swal.fire({
+        icon: "error",
+        title: "Validasi Gagal",
+        text: "Password minimal 6 karakter",
+      });
+      return;
+    }
+
     Swal.fire({
       title: "Menyimpan...",
-      text: "Mohon tunggu sebentar",
       allowOutsideClick: false,
       didOpen: () => {
         Swal.showLoading();
@@ -59,14 +59,17 @@ function Profile() {
     try {
       const token = localStorage.getItem("token");
       const formData = new FormData();
-      formData.append("name", user.name);
-      formData.append("email", user.email);
-      if (avatarFile) {
-        formData.append("avatar", avatarFile);
+      formData.append("name", form.name);
+      formData.append("email", form.email);
+      if (form.password) {
+        formData.append("password", form.password);
+      }
+      if (avatar) {
+        formData.append("avatar", avatar);
       }
 
-      const response = await axios.post(
-        `${import.meta.env.VITE_API_URL}/user/update`,
+      const { data } = await axios.post(
+        "http://localhost:8000/api/profile",
         formData,
         {
           headers: {
@@ -76,137 +79,109 @@ function Profile() {
         }
       );
 
-      const updatedUser = response.data.user;
-
-      localStorage.setItem("user", JSON.stringify(updatedUser));
-      const updateUser = AuthController.getState().setUser;
-      updateUser(updatedUser);
-
-      Swal.fire({
-        icon: "success",
-        title: "Berhasil",
-        text: "Profile berhasil di perbarui",
-      });
-    } catch {
-      Swal.fire({
-        icon: "error",
-        title: "Gagal",
-        text: "Terjadi kesalahan, coba lagi nanti",
-      });
-    }
-  };
-
-  const handleDeleteAvatar = async () => {
-    Swal.fire({
-      title: "Menghapus...",
-      text: "Mohon tunggu sebentar",
-      allowOutsideClick: false,
-      didOpen: () => {
-        Swal.showLoading();
-      },
-    });
-    try {
-      const token = localStorage.getItem("token");
-      await axios.delete(`${import.meta.env.VITE_API_URL}/user/delete-avatar`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      const currentUser = AuthController.getState().user;
-      const updatedUser = { ...currentUser, avatar: null };
-
-      localStorage.setItem("user", JSON.stringify(updatedUser));
-      const updateUser = AuthController.getState().setUser;
-      updateUser(updatedUser);
-
-      setAvatarPreview(null);
-      setAvatarFile(null);
+      localStorage.setItem("user", JSON.stringify(data));
+      setUser(data);
+      setForm({ ...form, password: "" });
+      setAvatar(null);
+      if (data.avatar) {
+        setAvatarPreview(`http://localhost:8000/storage/${data.avatar}`);
+      }
 
       Swal.fire({
         icon: "success",
         title: "Berhasil",
-        text: "Avatar berhasil dihapus",
+        text: "Profile berhasil diperbarui",
       });
-    } catch {
+    } catch (err) {
       Swal.fire({
         icon: "error",
         title: "Gagal",
-        text: "Terjadi kesalahan, coba lagi nanti",
+        text: err.response?.data?.message || err.response?.data?.error || "Terjadi kesalahan, coba lagi nanti",
       });
     }
   };
+
+
 
   return (
     <>
-      <div className="bg-gray-900 mb-6 py-5 px-5 rounded-md">
-        <h1 className="font-bold text-2xl text-white">My Profile</h1>
+      <div className="bg-gradient-to-r from-yellow-400 to-orange-500 mb-6 py-6 px-6 rounded-xl shadow-lg">
+        <h1 className="font-bold text-3xl text-white drop-shadow-lg">👤 My Profile</h1>
+        <p className="text-white/90 text-sm mt-1">Kelola informasi akun Anda</p>
       </div>
 
       <div className="grid xl:grid-cols-3 grid-cols-1">
         <div
-          className="bg-gray-900 mb-6 py-5 px-5 rounded-md min-h-[300px] flex items-center justify-center"
+          className="bg-gradient-to-br from-gray-800 to-gray-900 mb-6 py-6 px-6 rounded-xl min-h-[300px] shadow-xl border border-gray-700"
           data-aos="fade-up"
         >
           {loading ? (
-            <span className="w-8 h-8 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin"></span>
+            <div className="flex items-center justify-center h-full">
+              <span className="w-8 h-8 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin"></span>
+            </div>
           ) : (
             <form onSubmit={handleSubmit} className="w-full">
-              <div className="mb-3">
+              <div className="mb-4 relative">
                 <img
-                  src={avatarPreview || "/src/assets/profile-default.png"}
+                  src={avatarPreview}
                   alt="avatar"
-                  className="object-cover rounded h-56 w-full shadow"
+                  className="object-cover rounded-xl h-56 w-full shadow-2xl border-4 border-gray-700"
                 />
+                <div className="absolute top-3 right-3 bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-xs px-3 py-1 rounded-full font-semibold shadow-lg">
+                  {user?.is_premium ? "👑 Premium" : "🆓 Gratis"}
+                </div>
               </div>
 
-              <div className="mb-3">
-                <label className="block text-white mb-1">Name</label>
+              <div className="mb-4">
+                <label className="block text-gray-300 mb-2 font-semibold text-sm">👤 Name</label>
                 <input
                   type="text"
-                  value={user.name}
-                  onChange={(e) => setUser({ ...user, name: e.target.value })}
-                  className="w-full border border-white text-white px-3 py-1 rounded"
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  className="w-full bg-gray-700 border border-gray-600 text-white px-4 py-3 rounded-xl focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 transition-all"
                   required
                 />
               </div>
 
-              <div className="mb-3">
-                <label className="block text-white mb-1">Email</label>
+              <div className="mb-4">
+                <label className="block text-gray-300 mb-2 font-semibold text-sm">✉️ Email</label>
                 <input
                   type="email"
-                  value={user.email}
-                  onChange={(e) => setUser({ ...user, email: e.target.value })}
-                  className="w-full border border-white text-white px-3 py-1 rounded"
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  className="w-full bg-gray-700 border border-gray-600 text-white px-4 py-3 rounded-xl focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 transition-all"
                   required
                 />
               </div>
 
-              <div className="mb-3">
-                <label className="block text-white mb-1">Avatar</label>
+              <div className="mb-4">
+                <label className="block text-gray-300 mb-2 font-semibold text-sm">🔒 Password (optional)</label>
+                <input
+                  type="password"
+                  value={form.password}
+                  onChange={(e) => setForm({ ...form, password: e.target.value })}
+                  className="w-full bg-gray-700 border border-gray-600 text-white px-4 py-3 rounded-xl focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 transition-all"
+                  placeholder="Kosongkan jika tidak ingin mengubah"
+                  minLength={6}
+                />
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-gray-300 mb-2 font-semibold text-sm">🖼️ Avatar</label>
                 <input
                   type="file"
                   onChange={handleAvatarChange}
                   accept="image/*"
-                  className="w-full border border-white text-white px-3 py-1 rounded"
+                  className="w-full bg-gray-700 border border-gray-600 text-white px-4 py-3 rounded-xl file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-yellow-400 file:text-white file:font-semibold hover:file:bg-yellow-500 transition-all"
                 />
               </div>
 
-              <div className="mb-3 flex space-x-3">
-                <button
-                  type="submit"
-                  className="bg-yellow-400 hover:bg-yellow-500 text-white font-medium transition-colors px-3 py-1 rounded-sm"
-                >
-                  Save Changes
-                </button>
-                <button
-                  type="button"
-                  onClick={handleDeleteAvatar}
-                  className="bg-gray-600 hover:bg-gray-700 text-white font-medium transition-colors px-3 py-1 rounded-sm"
-                >
-                  Delete Avatar
-                </button>
-              </div>
+              <button
+                type="submit"
+                className="bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-white font-semibold transition-all px-6 py-3 rounded-xl w-full shadow-lg hover:shadow-xl transform hover:scale-105 duration-200"
+              >
+                ✔️ Save Changes
+              </button>
             </form>
           )}
         </div>

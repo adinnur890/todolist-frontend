@@ -2,7 +2,7 @@ import axios from "axios";
 import Swal from "sweetalert2";
 import AuthController from "./AuthController";
 
-const baseUrl = import.meta.env.VITE_API_URL;
+const baseUrl = "http://localhost:8000/api";
 
 const PaymentController = () => {
   const createOrder = async (planId = 1) => {
@@ -18,15 +18,12 @@ const PaymentController = () => {
         }
       );
 
-      console.log("Order response:", res.data);
-
       if (!res.data.order?.id) {
         throw new Error(res.data.message || "Order tidak valid.");
       }
 
       return res.data.order;
     } catch (error) {
-      console.error("Gagal membuat order:", error);
       throw error;
     }
   };
@@ -44,9 +41,8 @@ const PaymentController = () => {
         }
       );
 
-      return res.data.payment.snap_token;
+      return res.data.payment;
     } catch (err) {
-      console.error("Gagal membuat payment:", err.response?.data || err);
       throw err;
     }
   };
@@ -54,20 +50,51 @@ const PaymentController = () => {
   const payWithMidtrans = async (planId) => {
     try {
       const order = await createOrder(planId);
-      const snapToken = await createPayment(order.id);
+      const paymentResponse = await createPayment(order.id);
 
+      // Force demo mode untuk development
+      // Demo mode - langsung success
+      Swal.fire({
+        icon: "success",
+        title: "Upgrade Berhasil!",
+        text: "Akun Anda sekarang Premium. Silakan login ulang.",
+      }).then(() => {
+        const { logout } = AuthController.getState();
+        logout();
+        window.location.href = "/login";
+      });
+      return;
+
+      // Code below untuk production Midtrans (disabled)
+      /*
+      // Check if demo mode
+      if (paymentResponse.is_demo === true || paymentResponse.status === 'success') {
+        // Demo mode - langsung success
+        Swal.fire({
+          icon: "success",
+          title: "Upgrade Berhasil!",
+          text: "Akun Anda sekarang Premium. Silakan login ulang.",
+        }).then(() => {
+          const { logout } = AuthController.getState();
+          logout();
+          window.location.href = "/login";
+        });
+        return;
+      }
+      */
+
+      // Production mode - pakai Midtrans
+      const snapToken = paymentResponse.snap_token;
       if (window.snap) {
         window.snap.pay(snapToken, {
           onSuccess: (result) => {
-            console.log("Pembayaran sukses", result);
-
             Swal.fire({
               icon: "success",
               title: "Berhasil",
               text: "Pembayaran berhasil. Invoice akan segera didownload!",
             }).then(() => {
               const orderId = result.order_id.split("-")[0];
-              window.open(`${baseUrl}/invoice/download/${orderId}`, "_blank");
+              window.open(`http://localhost:8000/api/invoice/download/${orderId}`, "_blank");
 
               const { logout } = AuthController.getState();
               logout();
@@ -75,10 +102,9 @@ const PaymentController = () => {
             });
           },
           onPending: (result) => {
-            console.log("Menunggu pembayaran", result);
+            // Pending payment
           },
           onError: (error) => {
-            console.error("Pembayaran gagal", error);
             Swal.fire({
               icon: "error",
               title: "Gagal",
@@ -86,14 +112,13 @@ const PaymentController = () => {
             });
           },
           onClose: () => {
-            console.log("Popup ditutup oleh user");
+            // User closed popup
           },
         });
       } else {
         alert("Midtrans Snap belum diload.");
       }
     } catch (err) {
-      console.error("DETAIL ERROR:", err?.response?.data || err);
       Swal.fire({
         icon: "error",
         title: "Gagal",

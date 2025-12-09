@@ -1,23 +1,28 @@
 import { useEffect, useState } from "react";
-import TaskController from "../../controllers/TaskController";
-import PaymentController from "../../controllers/PaymentController";
+import { todoService } from "../../services/todoService";
+import AuthController from "../../controllers/AuthController";
 import Swal from "sweetalert2";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 function TodoList() {
   const [modal, setModal] = useState(false);
   const [editId, setEditId] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [todos, setTodos] = useState([]);
   const [form, setForm] = useState({
     title: "",
     description: "",
-    deadline: "",
-    video: "",
-    image: null,
   });
+  const user = AuthController((state) => state.user);
+  const navigate = useNavigate();
 
-  const { task, getTask, storeTask, clearMessage, deleteTask } =
-    TaskController();
+  // Redirect admin to admin panel
+  useEffect(() => {
+    if (user?.role === 'admin') {
+      navigate('/admin/premium');
+      return;
+    }
+  }, [user, navigate]);
 
   const handleStoreTask = async (e) => {
     e.preventDefault();
@@ -30,21 +35,14 @@ function TodoList() {
       },
     });
 
-    const formData = new FormData();
-    Object.entries(form).forEach(([key, value]) => {
-      if (value) formData.append(key, value);
-    });
-
     try {
-      await storeTask(formData, null, editId);
-      await getTask();
-      setForm({
-        title: "",
-        description: "",
-        deadline: "",
-        video: "",
-        image: null,
-      });
+      if (editId) {
+        await todoService.update(editId, form);
+      } else {
+        await todoService.create(form);
+      }
+      await fetchTodos();
+      setForm({ title: "", description: "" });
       setEditId(null);
       setModal(false);
       Swal.fire({
@@ -54,85 +52,77 @@ function TodoList() {
           ? "Perubahan berhasil disimpan"
           : "Todo berhasil ditambahkan",
       });
-    } catch {
+    } catch (err) {
+      console.error("Error saving todo:", err);
+      console.error("Error response:", err.response?.data);
+      const errorMsg = err.response?.data?.message || 
+                       err.response?.data?.error || 
+                       "Terjadi kesalahan saat menyimpan task.";
       Swal.fire({
         icon: "error",
         title: "Gagal",
-        text: "Terjadi kesalahan saat menyimpan task.",
+        text: errorMsg,
       });
     }
+  };
+
+  const fetchTodos = async () => {
+    setLoading(true);
+    try {
+      const data = await todoService.getAll();
+      setTodos(data);
+    } catch (error) {
+      console.error("Gagal mengambil todos:", error);
+    }
+    setLoading(false);
   };
 
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-
-      try {
-        await getTask();
-      } catch (error) {
-        console.error("Gagal mengambil task:", error);
-      }
-
-      setLoading(false);
-    };
-
-    fetchData();
-  }, [getTask]);
-
-  const extractYouTubeId = (url) => {
-    const match = url.match(
-      /(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/))([\w-]{11})/
-    );
-    return match ? match[1] : null;
-  };
+    fetchTodos();
+  }, []);
 
   const handleChange = (e) => {
-    const { name, value, files } = e.target;
+    const { name, value } = e.target;
     setForm((prev) => ({
       ...prev,
-      [name]: files ? files[0] : value,
+      [name]: value,
     }));
-    clearMessage();
   };
 
   const openAddModal = () => {
-    const isPremium = localStorage.getItem("user_status") === "premium";
-    if (!isPremium && task.length >= 1) {
+    // Cek apakah user premium atau tidak - lebih ketat
+    const isPremium = user?.is_premium === true || 
+                      user?.is_premium === 1 || 
+                      user?.is_premium === "1" ||
+                      user?.is_premium === "true";
+    
+    // Jika bukan premium dan sudah ada 3 todos, tampilkan alert upgrade
+    if (!isPremium && todos.length >= 3) {
       Swal.fire({
         title: "Upgrade ke Premium",
-        text: "Akun gratis hanya bisa menambahkan 1 todo. Upgrade ke premium sekarang?",
+        text: "Akun gratis hanya bisa menambahkan 3 todos. Upgrade ke premium untuk unlimited todos!",
         icon: "info",
         showCancelButton: true,
-        confirmButtonText: "Lihat Plan",
+        confirmButtonText: "Lihat Paket Premium",
+        cancelButtonText: "Batal",
       }).then((result) => {
         if (result.isConfirmed) {
-          window.location.href = "/plans";
+          navigate("/plans");
         }
       });
-
       return;
     }
-
-    setForm({
-      title: "",
-      description: "",
-      deadline: "",
-      video: "",
-      image: null,
-    });
+    
+    setForm({ title: "", description: "" });
     setEditId(null);
     setModal(true);
   };
 
-  const openEditModal = async (task) => {
-    setEditId(true);
-    setEditId(task.id);
+  const openEditModal = async (todo) => {
+    setEditId(todo.id);
     setForm({
-      title: task.title,
-      description: task.description,
-      deadline: task.deadline,
-      video: task.video || "",
-      image: null,
+      title: todo.title,
+      description: todo.description,
     });
     setModal(true);
   };
@@ -159,8 +149,8 @@ function TodoList() {
       });
 
       try {
-        await deleteTask(id);
-        await getTask();
+        await todoService.delete(id);
+        await fetchTodos();
         Swal.fire({
           icon: "success",
           title: "Berhasil",
@@ -178,16 +168,24 @@ function TodoList() {
 
   return (
     <>
-      <div className="bg-gray-900 mb-6 py-5 px-5 rounded-md">
-        <h1 className="font-bold text-2xl text-white">Todo List</h1>
+      <div className="bg-gradient-to-r from-yellow-400 to-orange-500 mb-6 py-6 px-6 rounded-xl shadow-lg">
+        <h1 className="font-bold text-3xl text-white drop-shadow-lg">📝 Todo List</h1>
+        <p className="text-white/90 text-sm mt-1">Kelola semua tugas Anda dengan mudah</p>
       </div>
 
-      <button
-        className="font-medium bg-yellow-400 hover:bg-yellow-500 text-white text-lg px-4 py-2 rounded-md"
-        onClick={() => openAddModal()}
-      >
-        Tambah Todo
-      </button>
+      <div className="flex gap-3 items-center mb-6 flex-wrap">
+        <button
+          className="font-semibold bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-white text-lg px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+          onClick={() => openAddModal()}
+        >
+          ➕ Tambah Todo
+        </button>
+        <div className="bg-gradient-to-r from-gray-800 to-gray-900 px-5 py-3 rounded-xl text-white text-sm shadow-md border border-gray-700">
+          <span className="font-semibold">{user?.is_premium ? "👑 Premium" : "🆓 Gratis"}</span>
+          <span className="mx-2">•</span>
+          <span>{todos.length} {user?.is_premium ? "Todos" : "/ 3 Todos"}</span>
+        </div>
+      </div>
       {modal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-6 backdrop-blur">
           <div
@@ -221,30 +219,6 @@ function TodoList() {
                   required
                 ></textarea>
               </div>
-              <div className="mb-3">
-                <label className="block text-white mb-1">
-                  Gambar (opsional)
-                </label>
-                <input
-                  type="file"
-                  name="image"
-                  onChange={handleChange}
-                  accept="image/*"
-                  className="w-full border border-white text-white px-3 py-2 rounded"
-                />
-              </div>
-              <div className="mb-3">
-                <label className="block text-white mb-1">
-                  Link Video YouTube (opsional)
-                </label>
-                <input
-                  type="url"
-                  name="video"
-                  value={form.video}
-                  onChange={handleChange}
-                  className="w-full border border-white text-white px-3 py-2 rounded"
-                />
-              </div>
               <div className="flex justify-end gap-3 mt-4">
                 <button
                   type="button"
@@ -266,74 +240,63 @@ function TodoList() {
       )}
 
       {loading ? (
-        <div className="bg-gray-900 py-8 px-6 rounded-md text-center mt-6">
-          <span className="loading loading-spinner text-primary text-3xl"></span>
-          <p className="text-gray-500 mt-4 text-sm">Sedang memuat data...</p>
+        <div className="bg-gradient-to-br from-gray-800 to-gray-900 py-12 px-6 rounded-xl text-center mt-6 border border-gray-700">
+          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-yellow-400 mx-auto"></div>
+          <p className="text-gray-400 mt-4 text-sm">Sedang memuat data...</p>
         </div>
-      ) : task.length === 0 ? (
-        <div className="bg-gray-900 py-8 px-6 rounded-md text-center mt-6">
-          <p className="text-white text-sm">Belum ada todo.</p>
+      ) : todos.length === 0 ? (
+        <div className="bg-gradient-to-br from-gray-800 to-gray-900 py-16 px-6 rounded-xl text-center mt-6 border border-gray-700">
+          <div className="text-6xl mb-4">📋</div>
+          <p className="text-white text-lg font-semibold mb-2">Belum ada todo</p>
+          <p className="text-gray-400 text-sm">Klik tombol "Tambah Todo" untuk memulai</p>
         </div>
       ) : (
         <div className="grid xl:grid-cols-3 md:grid-cols-2 grid-cols-1 mt-6 gap-6">
-          {task.map((task) => (
+          {todos.map((todo, index) => (
             <div
-              key={task.id}
-              className="bg-gray-900 rounded-lg p-4 hover:shadow-md cursor-pointer"
+              key={todo.id}
+              className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-5 hover:shadow-2xl cursor-pointer transform hover:scale-105 transition-all duration-300 border border-gray-700 hover:border-yellow-400"
               data-aos="fade-up"
+              data-aos-delay={index * 100}
             >
-              <div className="flex justify-between">
+              <div className="flex justify-between items-start mb-3">
                 <Link
-                  to={`/todo-list-detail/${task.id}`}
-                  className="text-xl font-semibold mb-1 text-white hover:underline w-full"
+                  to={`/todo-list-detail/${todo.id}`}
+                  className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-300 hover:to-orange-400 transition-all w-full"
                 >
-                  {task.title}
+                  {todo.title}
                 </Link>
 
-                <div className="flex space-x-3">
+                <div className="flex space-x-2">
                   <button
-                    className="text-lg font-medium text-primary hover:underline hover:cursor-pointer"
-                    onClick={() => openEditModal(task)}
+                    className="text-2xl hover:scale-125 transition-transform duration-200"
+                    onClick={() => openEditModal(todo)}
+                    title="Edit"
                   >
-                    <i className="fa-regular fa-pen-to-square"></i>
+                    ✏️
                   </button>
                   <button
-                    className="text-lg font-medium text-red-600 hover:underline hover:cursor-pointer"
-                    onClick={() => handleDelete(task.id)}
+                    className="text-2xl hover:scale-125 transition-transform duration-200"
+                    onClick={() => handleDelete(todo.id)}
+                    title="Hapus"
                   >
-                    <i className="fa-regular fa-trash"></i>
+                    🗑️
                   </button>
                 </div>
               </div>
-              <Link to={`/todo-list-detail/${task.id}`}>
-                <p className="text-gray-200 text-sm mb-2 line-clamp-2">
-                  {task.description}
+              <Link to={`/todo-list-detail/${todo.id}`}>
+                <p className="text-gray-300 text-sm mb-3 line-clamp-2 leading-relaxed">
+                  {todo.description}
                 </p>
-                {task.video && extractYouTubeId(task.video) ? (
-                  <div className="mt-3">
-                    <iframe
-                      src={`https://www.youtube.com/embed/${extractYouTubeId(
-                        task.video
-                      )}`}
-                      className="w-full h-48 rounded"
-                      frameBorder="0"
-                      allowFullScreen
-                      title="Video Preview"
-                    ></iframe>
-                  </div>
-                ) : task.image ? (
-                  <img
-                    src={task.image}
-                    alt="Preview"
-                    className="mt-3 w-full h-48 object-cover rounded"
-                  />
-                ) : (
-                  <img
-                    src="/public/default-featured-image.png.jpg"
-                    alt="Preview"
-                    className="mt-3 w-full h-48 object-cover rounded"
-                  />
-                )}
+                <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-700">
+                  <span className={`text-xs font-semibold px-3 py-1 rounded-full ${
+                    todo.completed 
+                      ? "bg-green-500/20 text-green-400 border border-green-500/30" 
+                      : "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
+                  }`}>
+                    {todo.completed ? "✓ Selesai" : "⏳ Belum Selesai"}
+                  </span>
+                </div>
               </Link>
             </div>
           ))}

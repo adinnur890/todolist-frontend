@@ -41,19 +41,21 @@ function TodoListDetail() {
     });
 
     try {
-      const data = await getSubtasks(taskId); 
+      const data = await getSubtasks(taskId);
+      
       const grouped = { pending: [], in_progress: [], completed: [] };
       data.forEach((item) => {
         if (grouped[item.status]) {
           grouped[item.status].push({ id: String(item.id), text: item.title });
         }
       });
+      
       setTasks(grouped);
-    } catch {
+    } catch (err) {
       Swal.fire({
         icon: "error",
         title: "Gagal memuat data",
-        text: "Terjadi kesalahan saat mengambil subtasks.",
+        text: err.message || "Terjadi kesalahan saat mengambil subtasks.",
       });
     } finally {
       Swal.close();
@@ -181,15 +183,16 @@ function TodoListDetail() {
 
   return (
     <>
-      <div className="bg-gray-900 mb-6 py-5 px-5 rounded-md">
-        <h1 className="font-bold text-2xl text-white">Todo List Detail</h1>
+      <div className="bg-gradient-to-r from-yellow-400 to-orange-500 mb-6 py-6 px-6 rounded-xl shadow-lg">
+        <h1 className="font-bold text-3xl text-white drop-shadow-lg">📋 Todo List Detail</h1>
+        <p className="text-white/90 text-sm mt-1">Kelola subtask dengan drag & drop</p>
       </div>
 
       <button
         onClick={openAddModal}
-        className="font-medium bg-yellow-400 hover:bg-yellow-500 text-white text-lg px-4 py-2 rounded-md mb-6"
+        className="font-semibold bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-white text-lg px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 mb-6"
       >
-        Tambah Subtask
+        ➕ Tambah Subtask
       </button>
 
       {isModalOpen && (
@@ -228,12 +231,12 @@ function TodoListDetail() {
           {columns.map((col) => (
             <div
               key={col.key}
-              className="bg-gray-900 rounded-md p-5 min-h-[200px] flex flex-col"
+              className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-5 min-h-[200px] flex flex-col shadow-xl border border-gray-700"
             >
-              <h2 className="font-semibold text-center text-xl text-white mb-3">
+              <h2 className="font-bold text-center text-xl text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500 mb-3">
                 {col.title}
               </h2>
-              <hr className="text-gray-300 mb-4" />
+              <hr className="border-gray-700 mb-4" />
               <Droppable droppableId={col.key}>
                 {(provided, snapshot) => (
                   <div
@@ -255,10 +258,58 @@ function TodoListDetail() {
                             ref={provided.innerRef}
                             {...provided.draggableProps}
                             {...provided.dragHandleProps}
-                            className="bg-gray-950 px-4 py-2 flex justify-between items-center rounded-md shadow-sm"
+                            className="bg-gradient-to-r from-gray-700 to-gray-800 px-4 py-3 flex justify-between items-center rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 border border-gray-600 hover:border-yellow-400"
                           >
-                            <p className="text-white">{item.text}</p>
+                            <p className="text-white flex-1">{item.text}</p>
                             <div className="flex space-x-2">
+                              {col.key === "pending" && (
+                                <button
+                                  className="text-green-600 text-xl"
+                                  onClick={async () => {
+                                    await changeStatus(item.id, "in_progress");
+                                    await fetchSubtasks();
+                                  }}
+                                  title="Pindah ke In Progress"
+                                >
+                                  →
+                                </button>
+                              )}
+                              {col.key === "in_progress" && (
+                                <>
+                                  <button
+                                    className="text-yellow-600 text-xl"
+                                    onClick={async () => {
+                                      await changeStatus(item.id, "pending");
+                                      await fetchSubtasks();
+                                    }}
+                                    title="Kembali ke Pending"
+                                  >
+                                    ←
+                                  </button>
+                                  <button
+                                    className="text-green-600 text-xl"
+                                    onClick={async () => {
+                                      await changeStatus(item.id, "completed");
+                                      await fetchSubtasks();
+                                    }}
+                                    title="Pindah ke Done"
+                                  >
+                                    →
+                                  </button>
+                                </>
+                              )}
+                              {col.key === "completed" && (
+                                <button
+                                  className="text-yellow-600 text-xl"
+                                  onClick={async () => {
+                                    await changeStatus(item.id, "in_progress");
+                                    await fetchSubtasks();
+                                  }}
+                                  title="Kembali ke In Progress"
+                                >
+                                  ←
+                                </button>
+                              )}
                               <button
                                 className="text-blue-600 text-xl"
                                 onClick={() => openEditModal(item)}

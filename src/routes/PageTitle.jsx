@@ -6,19 +6,20 @@ function PageTitle() {
 
     useEffect(() => {
         const titles = {
-            "/": "Home | TodoBee",
-            "/about": "About | TodoBee",
-            "/contact": "Contact | TodoBee",
-            "/login": "Login | TodoBee",
-            "/register": "Register | TodoBee",
-            "/dashboard": "Dashboard | TodoBee",
-            "/todo-list": "Todo List | TodoBee",
-            "/todo-list-detail": "Todo List Detail | TodoBee",
-            "/setting": "Setting | TodoBee",
-            "/plans": "Plans | TodoBee",
+            "/": "Home | TodoDin",
+            "/about": "About | TodoDin",
+            "/contact": "Contact | TodoDin",
+            "/login": "Login | TodoDin",
+            "/register": "Register | TodoDin",
+            "/dashboard": "Dashboard | TodoDin",
+            "/todo-list": "Todo List | TodoDin",
+            "/todo-list-detail": "Todo List Detail | TodoDin",
+            "/setting": "Setting | TodoDin",
+            "/plans": "Plans | TodoDin",
+            "/premium": "Premium | TodoDin",
         };
 
-        document.title = titles[location.pathname] || "TodoBee";
+        document.title = titles[location.pathname] || "TodoDin";
     }, [location]);
 
     return null;

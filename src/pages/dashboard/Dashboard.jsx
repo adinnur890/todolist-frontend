@@ -1,45 +1,57 @@
 import { useEffect, useState } from "react";
-import TaskController from "../../controllers/TaskController";
-import { Link } from "react-router-dom";
+import { todoService } from "../../services/todoService";
+import { Link, useNavigate } from "react-router-dom";
+import AuthController from "../../controllers/AuthController";
 
 function Dashboard() {
-  const { task, getTask } = TaskController();
+  const navigate = useNavigate();
+  const { user } = AuthController();
+  const [todos, setTodos] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Redirect admin to admin panel
   useEffect(() => {
-    const fetchTask = async () => {
+    if (user?.role === 'admin') {
+      navigate('/admin/premium');
+      return;
+    }
+  }, [user, navigate]);
+
+  useEffect(() => {
+    const fetchTodos = async () => {
       try {
-        await getTask();
+        const data = await todoService.getAll();
+        setTodos(data);
       } catch (err) {
-        console.error("Gagal ambil data task", err);
+        console.error("Gagal ambil data todos", err);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchTask();
-  }, [getTask, setLoading]);
+    fetchTodos();
+  }, []);
 
   return (
     <>
-      <div className="bg-gray-900 mb-6 py-5 px-5 rounded-md">
-        <h1 className="font-bold text-2xl text-white">Dashboard</h1>
+      <div className="bg-gradient-to-r from-yellow-400 to-orange-500 mb-6 py-6 px-6 rounded-xl shadow-lg">
+        <h1 className="font-bold text-3xl text-white drop-shadow-lg">📊 Dashboard</h1>
+        <p className="text-white/90 text-sm mt-1">Selamat datang kembali!</p>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
         <Link
           to="/todo-list"
-          className="bg-gray-900 p-6 rounded-md hover:shadow-md transition"
+          className="bg-gradient-to-br from-gray-800 to-gray-900 p-6 rounded-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border border-gray-700 hover:border-yellow-400"
           data-aos="fade-up"
         >
-          <h2 className="text-white text-lg mb-2">Total Todos</h2>
+          <h2 className="text-white text-lg mb-3 font-semibold">📝 Total Todos</h2>
           {loading ? (
-            <p className="text-3xl font-bold text-yellow-400">
-              <span className="loading loading-spinner text-yellow-400 text-3xl"></span>{" "}
-              <i className="fa-regular fa-notebook"></i>
-            </p>
+            <div className="flex items-center gap-3">
+              <div className="animate-spin rounded-full h-10 w-10 border-t-4 border-yellow-400"></div>
+            </div>
           ) : (
-            <p className="text-3xl font-bold text-yellow-400">
-              {task.length} <i className="fa-regular fa-notebook"></i>
+            <p className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500">
+              {todos.length}
             </p>
           )}
         </Link>
