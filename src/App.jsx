@@ -8,7 +8,7 @@ function App() {
         <div className="grid xl:grid-cols-2 grid-cols-1 xl:space-x-5 relative z-10">
           <div className="flex justify-center flex-col">
             <div className="flex justify-end xl:hidden mb-8">
-            <img src="/src/assets/checklist-1-18.svg" className="w-[35rem] animate-pulse" alt="" />
+            <img src="/checklist-1-18.svg" className="w-[35rem] animate-pulse" alt="" />
           </div>
             <h1
               className="font-bold xl:text-6xl text-center xl:text-start text-4xl text-white leading-tight"
@@ -32,7 +32,7 @@ function App() {
             </div>
           </div>
           <div className="xl:flex justify-end hidden">
-            <img src="/src/assets/checklist-1-18.svg" className="xl:w-[35rem] w-[20rem] animate-pulse" alt="" />
+            <img src="/checklist-1-18.svg" className="xl:w-[35rem] w-[20rem] animate-pulse" alt="" />
           </div>
         </div>
       </div>
@@ -53,7 +53,7 @@ function App() {
         >
           <div>
             <img
-              src="/src/assets/time-organization-concept-close-up.jpg"
+              src="/time-organization-concept-close-up.jpg"
               className="rounded-2xl shadow-2xl xl:mb-0 mb-3 border-4 border-gray-700 hover:border-yellow-400 transition-all duration-300 transform hover:scale-105"
               alt=""
             />
@@ -76,7 +76,7 @@ function App() {
         >
           <div className="md:hidden">
             <img
-              src="/src/assets/top-view-arrangement-with-calendar-pencils.jpg"
+              src="/top-view-arrangement-with-calendar-pencils.jpg"
               className="rounded-2xl shadow-2xl mb-3 border-4 border-gray-700 hover:border-yellow-400 transition-all duration-300 transform hover:scale-105"
               alt=""
             />
@@ -94,7 +94,7 @@ function App() {
           </div>
           <div className="hidden md:block">
             <img
-              src="/src/assets/top-view-arrangement-with-calendar-pencils.jpg"
+              src="/top-view-arrangement-with-calendar-pencils.jpg"
               className="rounded-2xl shadow-2xl border-4 border-gray-700 hover:border-yellow-400 transition-all duration-300 transform hover:scale-105"
               alt=""
             />
@@ -105,7 +105,7 @@ function App() {
       <div className="bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 py-40 2xl:px-60 px-6 grid xl:grid-cols-2 grid-cols-1 xl:space-x-16">
         <div data-aos="fade-up">
           <img
-            src="/src/assets/time-organization-concept-with-planner-top-view.jpg"
+            src="/time-organization-concept-with-planner-top-view.jpg"
             className="rounded-2xl shadow-2xl mb-3 xl:mb-0 border-4 border-gray-700 hover:border-yellow-400 transition-all duration-300 transform hover:scale-105"
             alt=""
           />
