@@ -24,7 +24,7 @@ function About() {
 
         <div className="relative" data-aos="fade-up" data-aos-duration="1400">
           <img
-            src="/src/assets/time-organization-concept-close-up.jpg"
+            src="/time-organization-concept-close-up.jpg"
             className="xl:h-[35rem] h-[25rem] w-full object-cover rounded-3xl shadow-2xl border-4 border-gray-700 hover:border-yellow-400 transition-all duration-300 transform hover:scale-105"
             alt="TodoDin"
           />
