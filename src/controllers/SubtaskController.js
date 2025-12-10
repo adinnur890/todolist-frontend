@@ -19,23 +19,17 @@ const SubtaskController = create((set) => ({
 
   getSubtasks: async (todoId) => {
     try {
-      const token = localStorage.getItem("token");
-
-      const res = await axios.get(`${api}/simple_subtask.php?todo_id=${todoId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
+      // Return existing subtasks from state (dummy data)
+      const currentSubtasks = SubtaskController.getState().subtasks;
+      
       set({
-        subtasks: res.data,
+        subtasks: currentSubtasks,
         error: null,
       });
 
-      return res.data; 
+      return currentSubtasks; 
     } catch (err) {
-      handleUnauthorized(err);
-      const message = err.response?.data?.message || "Gagal memuat subtask";
+      const message = "Gagal memuat subtask";
       set({ error: message });
       throw new Error(message);
     }
