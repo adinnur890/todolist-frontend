@@ -125,10 +125,15 @@ const AuthController = create((set) => ({
       
       console.log('Clean data to send:', cleanData);
       
-      // Pakai file PHP khusus
-      const response = await axios.post(`${baseUrl}/api_register.php`, JSON.stringify(cleanData), {
+      // Kirim dengan FormData
+      const formData = new FormData();
+      formData.append('name', cleanData.name);
+      formData.append('email', cleanData.email);
+      formData.append('password', cleanData.password);
+      
+      const response = await axios.post(`${baseUrl}/api_register.php`, formData, {
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'multipart/form-data'
         }
       });
       
