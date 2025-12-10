@@ -1,7 +1,7 @@
 import axios from "axios";
 import { create } from "zustand";
 
-const api = "https://todolistpremium.ct.ws/backend_tododin/public/api";
+const api = "https://todolistpremium.ct.ws";
 
 const handleUnauthorized = (error) => {
   if (error.response?.status === 401) {
@@ -21,7 +21,7 @@ const SubtaskController = create((set) => ({
     try {
       const token = localStorage.getItem("token");
 
-      const res = await axios.get(`${api}/subtasks?todo_id=${todoId}`, {
+      const res = await axios.get(`${api}/api_subtasks.php?todo_id=${todoId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -45,7 +45,7 @@ const SubtaskController = create((set) => ({
     try {
       const token = localStorage.getItem("token");
 
-      const res = await axios.post(`${api}/subtasks?todo_id=${todoId}`, data, {
+      const res = await axios.post(`${api}/api_subtasks.php?todo_id=${todoId}`, data, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -69,7 +69,7 @@ const SubtaskController = create((set) => ({
     try {
       const token = localStorage.getItem("token");
 
-      const res = await axios.put(`${api}/subtasks/${id}`, data, {
+      const res = await axios.put(`${api}/api_subtasks.php/${id}`, data, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -94,7 +94,7 @@ const SubtaskController = create((set) => ({
     try {
       const token = localStorage.getItem("token");
 
-      await axios.delete(`${api}/subtasks/${id}`, {
+      await axios.delete(`${api}/api_subtasks.php/${id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -118,7 +118,7 @@ const SubtaskController = create((set) => ({
       const token = localStorage.getItem("token");
 
       await axios.post(
-        `${api}/subtasks/change-status`,
+        `${api}/api_subtasks.php/change-status`,
         {
           subtask_id: subtaskId,
           status: status,
