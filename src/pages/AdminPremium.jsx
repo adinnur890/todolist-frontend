@@ -39,7 +39,8 @@ const AdminPremium = () => {
   const fetchUsers = async () => {
     try {
       const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
-      // Add admin user if not exists
+      
+      // Add default admin if not exists
       const adminExists = registeredUsers.find(u => u.email === 'adinadmin@gmail.com');
       if (!adminExists) {
         registeredUsers.push({
@@ -48,9 +49,39 @@ const AdminPremium = () => {
           email: 'adinadmin@gmail.com',
           role: 'admin',
           is_premium: true,
+          premium_expires_at: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
           created_at: new Date().toISOString()
         });
+        localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
       }
+      
+      // Add demo users for testing if no users exist
+      if (registeredUsers.length <= 1) {
+        const demoUsers = [
+          {
+            id: 'demo-1',
+            name: 'Demo User 1',
+            email: 'demo1@test.com',
+            password: '123456',
+            role: 'user',
+            is_premium: false,
+            created_at: new Date().toISOString()
+          },
+          {
+            id: 'demo-2', 
+            name: 'Demo User 2',
+            email: 'demo2@test.com',
+            password: '123456',
+            role: 'user',
+            is_premium: true,
+            premium_expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+            created_at: new Date().toISOString()
+          }
+        ];
+        registeredUsers.push(...demoUsers);
+        localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
+      }
+      
       setUsers(registeredUsers);
     } catch (err) {
       console.error('Failed to fetch users:', err);
