@@ -1,7 +1,7 @@
   import axios from "axios";
 import { create } from "zustand";
 
-const baseUrl = "http://localhost:8000/api";
+const baseUrl = "http://192.168.2.103:8000/api";
 const savedToken = localStorage.getItem("token");
 const savedUserRaw = localStorage.getItem("user");
 const savedUser =
