@@ -73,6 +73,29 @@ const TaskController = create((set) => ({
     }
   },
 
+  updateTaskStatus: async (id, status) => {
+    try {
+      const token = localStorage.getItem("token");
+
+      await axios.put(`${api}/tasks/${id}/status`, { status }, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      set((state) => ({
+        task: state.task.map((task) =>
+          task.id === id ? { ...task, status } : task
+        ),
+        success: "Status berhasil diperbarui",
+        error: null,
+      }));
+    } catch (err) {
+      const message = err.response?.data?.message || "Gagal memperbarui status";
+      set({ error: message });
+    }
+  },
+
   clearMessage: () => set({ error: null, success: null }),
 }));
 

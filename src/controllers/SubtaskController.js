@@ -19,15 +19,16 @@ const SubtaskController = create((set) => ({
 
   getSubtasks: async (todoId) => {
     try {
-      // Return existing subtasks from state (dummy data)
-      const currentSubtasks = SubtaskController.getState().subtasks;
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const userKey = user.email || 'default';
+      const savedSubtasks = JSON.parse(localStorage.getItem(`subtasks_${userKey}`) || '[]');
       
       set({
-        subtasks: currentSubtasks,
+        subtasks: savedSubtasks,
         error: null,
       });
 
-      return currentSubtasks; 
+      return savedSubtasks; 
     } catch (err) {
       const message = "Gagal memuat subtask";
       set({ error: message });
@@ -46,11 +47,17 @@ const SubtaskController = create((set) => ({
         created_at: new Date().toISOString()
       };
       
-      set((state) => ({
-        subtasks: [...state.subtasks, dummySubtask],
-        success: "Subtask berhasil ditambahkan",
-        error: null,
-      }));
+      set((state) => {
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        const userKey = user.email || 'default';
+        const newSubtasks = [...state.subtasks, dummySubtask];
+        localStorage.setItem(`subtasks_${userKey}`, JSON.stringify(newSubtasks));
+        return {
+          subtasks: newSubtasks,
+          success: "Subtask berhasil ditambahkan",
+          error: null,
+        };
+      });
     } catch (err) {
       console.error("Subtask error:", err);
       const message = "Gagal menambahkan subtask";
@@ -61,24 +68,15 @@ const SubtaskController = create((set) => ({
 
   updateSubtask: async (id, data) => {
     try {
-      const token = localStorage.getItem("token");
-
-      const res = await axios.put(`${api}/api_subtasks.php/${id}`, data, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
       set((state) => ({
         subtasks: state.subtasks.map((item) =>
-          item.id === id ? res.data : item
+          item.id == id ? { ...item, title: data.title } : item
         ),
         success: "Subtask berhasil diupdate",
         error: null,
       }));
     } catch (err) {
-      handleUnauthorized(err);
-      const message = err.response?.data?.message || "Gagal mengupdate subtask";
+      const message = "Gagal mengupdate subtask";
       set({ error: message });
       throw err;
     }
@@ -86,22 +84,19 @@ const SubtaskController = create((set) => ({
 
   deleteSubtask: async (id) => {
     try {
-      const token = localStorage.getItem("token");
-
-      await axios.delete(`${api}/api_subtasks.php/${id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      set((state) => {
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        const userKey = user.email || 'default';
+        const newSubtasks = state.subtasks.filter((item) => item.id != id);
+        localStorage.setItem(`subtasks_${userKey}`, JSON.stringify(newSubtasks));
+        return {
+          subtasks: newSubtasks,
+          success: "Subtask berhasil dihapus",
+          error: null,
+        };
       });
-
-      set((state) => ({
-        subtasks: state.subtasks.filter((item) => item.id !== id),
-        success: "Subtask berhasil dihapus",
-        error: null,
-      }));
     } catch (err) {
-      handleUnauthorized(err);
-      const message = err.response?.data?.message || "Gagal menghapus subtask";
+      const message = "Gagal menghapus subtask";
       set({ error: message });
       throw err;
     }
@@ -109,14 +104,21 @@ const SubtaskController = create((set) => ({
 
   changeStatus: async (subtaskId, status) => {
     try {
+      console.log("changeStatus called:", { subtaskId, status });
       // Dummy update status
-      set((state) => ({
-        subtasks: state.subtasks.map((item) =>
-          item.id === subtaskId ? { ...item, status } : item
-        ),
-        success: "Status berhasil diperbarui",
-        error: null,
-      }));
+      set((state) => {
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        const userKey = user.email || 'default';
+        const newSubtasks = state.subtasks.map((item) => {
+          return item.id == subtaskId ? { ...item, status } : item;
+        });
+        localStorage.setItem(`subtasks_${userKey}`, JSON.stringify(newSubtasks));
+        return {
+          subtasks: newSubtasks,
+          success: "Status berhasil diperbarui",
+          error: null,
+        };
+      });
     } catch (err) {
       const message = "Gagal memperbarui status";
       set({ error: message });

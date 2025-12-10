@@ -7,6 +7,7 @@ function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
   const login = AuthController((state) => state.login);
   const { error } = AuthController();
   const navigate = useNavigate();
@@ -15,19 +16,32 @@ function Login() {
 
 
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     
-    localStorage.setItem('token', 'user-token-123');
-    localStorage.setItem('user', JSON.stringify({
-      id: 1,
-      name: email.split('@')[0],
-      email: email,
-      role: 'user'
-    }));
+    if (!email || !password) {
+      Swal.fire({
+        icon: "error",
+        title: "Form Tidak Lengkap",
+        text: "Mohon isi email dan password"
+      });
+      return;
+    }
     
-    // Redirect ke dashboard bukan todo-list
-    window.location.replace('/dashboard');
+    setLoading(true);
+    
+    try {
+      await login(email, password, navigate);
+    } catch (err) {
+      console.error('Login error:', err);
+      Swal.fire({
+        icon: "error",
+        title: "Login Gagal",
+        text: err.message || "Email atau password salah"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -114,10 +128,20 @@ function Login() {
 
             <button
               type="submit"
-              className="w-full py-3 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold rounded-xl shadow-lg hover:shadow-purple-500/50 transform hover:scale-[1.02] transition-all duration-200 animate-fadeInUp delay-300"
+              disabled={loading}
+              className="w-full py-3 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold rounded-xl shadow-lg hover:shadow-purple-500/50 transform hover:scale-[1.02] transition-all duration-200 animate-fadeInUp delay-300 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <i className="fa-solid fa-right-to-bracket mr-2"></i>
-              Login
+              {loading ? (
+                <div className="flex items-center justify-center gap-2">
+                  <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-white"></div>
+                  <span>Memproses...</span>
+                </div>
+              ) : (
+                <>
+                  <i className="fa-solid fa-right-to-bracket mr-2"></i>
+                  Login
+                </>
+              )}
             </button>
 
             <div className="text-center pt-2 animate-fadeInUp delay-400">

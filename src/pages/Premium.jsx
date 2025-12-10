@@ -91,7 +91,38 @@ const Premium = () => {
           <h1 className="text-4xl xl:text-5xl font-bold text-white mb-4">
             Pilih <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500">Paket Premium</span>
           </h1>
-          <p className="text-gray-400 text-lg">🚀 Upgrade untuk fitur unlimited dan pengalaman terbaik</p>
+          <p className="text-gray-400 text-lg mb-6">🚀 Upgrade untuk fitur unlimited dan pengalaman terbaik</p>
+          
+          {/* Premium Benefits */}
+          <div className="bg-gradient-to-r from-gray-800/50 to-gray-900/50 rounded-2xl p-6 backdrop-blur-sm border border-gray-700 max-w-4xl mx-auto">
+            <h3 className="text-xl font-bold text-yellow-400 mb-4">✨ Keuntungan Premium</h3>
+            <div className="grid md:grid-cols-3 gap-4 text-sm">
+              <div className="flex items-center text-gray-300">
+                <span className="text-green-400 mr-2">✓</span>
+                <span>Unlimited Todos</span>
+              </div>
+              <div className="flex items-center text-gray-300">
+                <span className="text-green-400 mr-2">✓</span>
+                <span>Unlimited Subtasks</span>
+              </div>
+              <div className="flex items-center text-gray-300">
+                <span className="text-green-400 mr-2">✓</span>
+                <span>Priority Support</span>
+              </div>
+              <div className="flex items-center text-gray-300">
+                <span className="text-green-400 mr-2">✓</span>
+                <span>Advanced Analytics</span>
+              </div>
+              <div className="flex items-center text-gray-300">
+                <span className="text-green-400 mr-2">✓</span>
+                <span>Export Data</span>
+              </div>
+              <div className="flex items-center text-gray-300">
+                <span className="text-green-400 mr-2">✓</span>
+                <span>No Ads</span>
+              </div>
+            </div>
+          </div>
         </div>
         
         {error && (
@@ -143,7 +174,7 @@ const Premium = () => {
                   </div>
                   
                   <h3 className="text-2xl font-bold text-white mb-3">{pkg.name}</h3>
-                  <p className="text-gray-400 mb-6 text-lg">
+                  <p className="text-gray-400 mb-4 text-lg">
                     Akses premium selama <span className="text-yellow-400 font-semibold">
                       {pkg.name?.includes('1 Bulan') ? '1 bulan' : 
                        pkg.name?.includes('3 Bulan') ? '3 bulan' : 
@@ -152,13 +183,84 @@ const Premium = () => {
                     </span>
                   </p>
                   
-                  <div className="mb-6">
-                    <span className="text-4xl font-bold text-white">{formatPrice(pkg.price)}</span>
-                    <p className="text-gray-400 mt-1">
+                  {/* Package Features */}
+                  <div className="mb-6 text-left">
+                    <div className="space-y-2 text-sm text-gray-300">
+                      <div className="flex items-center">
+                        <span className="text-green-400 mr-2">✓</span>
+                        <span>Unlimited Todos & Subtasks</span>
+                      </div>
+                      <div className="flex items-center">
+                        <span className="text-green-400 mr-2">✓</span>
+                        <span>Drag & Drop Interface</span>
+                      </div>
+                      <div className="flex items-center">
+                        <span className="text-green-400 mr-2">✓</span>
+                        <span>Priority Support</span>
+                      </div>
+                      {pkg.name?.includes('3 Bulan') && (
+                        <div className="flex items-center">
+                          <span className="text-yellow-400 mr-2">⭐</span>
+                          <span className="text-yellow-400 font-semibold">Hemat 20%</span>
+                        </div>
+                      )}
+                      {pkg.name?.includes('1 Tahun') && (
+                        <div className="flex items-center">
+                          <span className="text-yellow-400 mr-2">🔥</span>
+                          <span className="text-yellow-400 font-semibold">Hemat 40%</span>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Voucher Info */}
+                    <div className="mt-3 p-3 bg-gray-700/30 rounded-lg border border-gray-600">
+                      <p className="text-xs text-gray-400 mb-2">🎫 Voucher tersedia:</p>
+                      <div className="space-y-1 text-xs">
+                        {pkg.id === 1 && (
+                          <>
+                            <div className="text-green-400">HEMAT10K - Diskon Rp 10rb</div>
+                            <div className="text-blue-400">DISKON20 - Diskon 20%</div>
+                          </>
+                        )}
+                        {pkg.id === 2 && (
+                          <>
+                            <div className="text-green-400">HEMAT30K - Diskon Rp 30rb</div>
+                            <div className="text-blue-400">DISKON25 - Diskon 25%</div>
+                          </>
+                        )}
+                        {pkg.id === 3 && (
+                          <>
+                            <div className="text-green-400">HEMAT100K - Diskon Rp 100rb</div>
+                            <div className="text-blue-400">DISKON50 - Diskon 50%</div>
+                          </>
+                        )}
+                        <div className="text-yellow-400">GRATIS100 - Gratis 100%</div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="mb-6 text-center">
+                    <div className="mb-2">
+                      <span className="text-4xl font-bold text-white">{formatPrice(pkg.price)}</span>
+                      {pkg.name?.includes('3 Bulan') && (
+                        <div className="text-sm text-gray-400 line-through mt-1">
+                          {formatPrice(150000)} (harga normal)
+                        </div>
+                      )}
+                      {pkg.name?.includes('1 Tahun') && (
+                        <div className="text-sm text-gray-400 line-through mt-1">
+                          {formatPrice(600000)} (harga normal)
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-gray-400">
                       {pkg.name?.includes('1 Bulan') ? 'Per bulan' : 
                        pkg.name?.includes('3 Bulan') ? 'Sekali bayar 3 bulan' : 
                        pkg.name?.includes('1 Tahun') ? 'Sekali bayar 1 tahun' : 'Per periode'}
                     </p>
+                    {pkg.name?.includes('1 Bulan') && (
+                      <p className="text-xs text-gray-500 mt-1">Dapat dibatalkan kapan saja</p>
+                    )}
                   </div>
                   
                   <button className={`w-full py-3 rounded-xl font-semibold transition-all duration-200 ${
@@ -184,12 +286,74 @@ const Premium = () => {
               <label className="block text-sm font-medium text-gray-300 mb-3">
                 🎫 Kode Voucher (opsional)
               </label>
+              
+              {/* Voucher suggestions */}
+              <div className="mb-3 p-3 bg-gray-700/30 rounded-lg border border-gray-600">
+                <p className="text-xs text-gray-400 mb-2">Voucher tersedia untuk paket ini:</p>
+                <div className="flex flex-wrap gap-2">
+                  {selectedPackage.id === 1 && (
+                    <>
+                      <button 
+                        onClick={() => setVoucherCode('HEMAT10K')}
+                        className="text-xs bg-green-600/20 text-green-400 px-2 py-1 rounded border border-green-600/30 hover:bg-green-600/30 transition-colors"
+                      >
+                        HEMAT10K
+                      </button>
+                      <button 
+                        onClick={() => setVoucherCode('DISKON20')}
+                        className="text-xs bg-blue-600/20 text-blue-400 px-2 py-1 rounded border border-blue-600/30 hover:bg-blue-600/30 transition-colors"
+                      >
+                        DISKON20
+                      </button>
+                    </>
+                  )}
+                  {selectedPackage.id === 2 && (
+                    <>
+                      <button 
+                        onClick={() => setVoucherCode('HEMAT30K')}
+                        className="text-xs bg-green-600/20 text-green-400 px-2 py-1 rounded border border-green-600/30 hover:bg-green-600/30 transition-colors"
+                      >
+                        HEMAT30K
+                      </button>
+                      <button 
+                        onClick={() => setVoucherCode('DISKON25')}
+                        className="text-xs bg-blue-600/20 text-blue-400 px-2 py-1 rounded border border-blue-600/30 hover:bg-blue-600/30 transition-colors"
+                      >
+                        DISKON25
+                      </button>
+                    </>
+                  )}
+                  {selectedPackage.id === 3 && (
+                    <>
+                      <button 
+                        onClick={() => setVoucherCode('HEMAT100K')}
+                        className="text-xs bg-green-600/20 text-green-400 px-2 py-1 rounded border border-green-600/30 hover:bg-green-600/30 transition-colors"
+                      >
+                        HEMAT100K
+                      </button>
+                      <button 
+                        onClick={() => setVoucherCode('DISKON50')}
+                        className="text-xs bg-blue-600/20 text-blue-400 px-2 py-1 rounded border border-blue-600/30 hover:bg-blue-600/30 transition-colors"
+                      >
+                        DISKON50
+                      </button>
+                    </>
+                  )}
+                  <button 
+                    onClick={() => setVoucherCode('GRATIS100')}
+                    className="text-xs bg-yellow-600/20 text-yellow-400 px-2 py-1 rounded border border-yellow-600/30 hover:bg-yellow-600/30 transition-colors"
+                  >
+                    GRATIS100
+                  </button>
+                </div>
+              </div>
+              
               <div className="flex gap-3">
                 <input
                   type="text"
                   value={voucherCode}
                   onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
-                  placeholder="Masukkan kode voucher (contoh: DISKON50)"
+                  placeholder={`Contoh: ${selectedPackage.id === 1 ? 'HEMAT10K atau DISKON20' : selectedPackage.id === 2 ? 'HEMAT30K atau DISKON25' : 'HEMAT100K atau DISKON50'}`}
                   className="flex-1 bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white placeholder-gray-400 focus:border-yellow-400 focus:outline-none transition-colors"
                 />
                 <button

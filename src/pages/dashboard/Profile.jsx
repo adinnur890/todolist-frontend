@@ -13,7 +13,7 @@ function Profile() {
     password: "",
   });
   const [avatar, setAvatar] = useState(null);
-  const [avatarPreview, setAvatarPreview] = useState("/src/assets/profile-default.png");
+  const [avatarPreview, setAvatarPreview] = useState("https://via.placeholder.com/300x300/374151/ffffff?text=👤");
 
   useEffect(() => {
     if (user) {
@@ -22,8 +22,11 @@ function Profile() {
         email: user.email || "",
         password: "",
       });
-      if (user.avatar) {
-        setAvatarPreview(`http://localhost:8000/storage/${user.avatar}`);
+      // Load avatar per-user
+      const userKey = user.email || 'default';
+      const savedAvatar = localStorage.getItem(`avatar_${userKey}`);
+      if (savedAvatar) {
+        setAvatarPreview(savedAvatar);
       }
     }
   }, [user]);
@@ -32,14 +35,47 @@ function Profile() {
     const file = e.target.files[0];
     if (file) {
       setAvatar(file);
-      setAvatarPreview(URL.createObjectURL(file));
+      
+      // Compress and convert to base64
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+      
+      img.onload = () => {
+        // Resize to max 300x300 for faster loading
+        const maxSize = 300;
+        let { width, height } = img;
+        
+        if (width > height) {
+          if (width > maxSize) {
+            height = (height * maxSize) / width;
+            width = maxSize;
+          }
+        } else {
+          if (height > maxSize) {
+            width = (width * maxSize) / height;
+            height = maxSize;
+          }
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        ctx.drawImage(img, 0, 0, width, height);
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7); // 70% quality
+        setAvatarPreview(compressedDataUrl);
+      };
+      
+      img.src = URL.createObjectURL(file);
     }
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
+    setLoading(true);
 
     if (form.password && form.password.length < 6) {
+      setLoading(false);
       Swal.fire({
         icon: "error",
         title: "Validasi Gagal",
@@ -48,57 +84,37 @@ function Profile() {
       return;
     }
 
-    Swal.fire({
-      title: "Menyimpan...",
-      allowOutsideClick: false,
-      didOpen: () => {
-        Swal.showLoading();
-      },
-    });
-
-    try {
-      const token = localStorage.getItem("token");
-      const formData = new FormData();
-      formData.append("name", form.name);
-      formData.append("email", form.email);
-      if (form.password) {
-        formData.append("password", form.password);
-      }
+    setTimeout(() => {
+      // Update user data
+      const updatedUser = {
+        ...user,
+        name: form.name,
+        email: form.email,
+      };
+      
       if (avatar) {
-        formData.append("avatar", avatar);
+        // Simpan avatar per-user
+        const userKey = user.email || 'default';
+        localStorage.setItem(`avatar_${userKey}`, avatarPreview);
       }
-
-      const { data } = await axios.post(
-        "http://localhost:8000/api/profile",
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
-
-      localStorage.setItem("user", JSON.stringify(data));
-      setUser(data);
+      
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+      setUser(updatedUser);
       setForm({ ...form, password: "" });
       setAvatar(null);
-      if (data.avatar) {
-        setAvatarPreview(`http://localhost:8000/storage/${data.avatar}`);
-      }
-
+      setLoading(false);
+      
+      // Trigger sidebar update
+      window.dispatchEvent(new Event('storage'));
+      
+      // Success message
       Swal.fire({
         icon: "success",
-        title: "Berhasil",
-        text: "Profile berhasil diperbarui",
+        title: "Berhasil!",
+        timer: 800,
+        showConfirmButton: false
       });
-    } catch (err) {
-      Swal.fire({
-        icon: "error",
-        title: "Gagal",
-        text: err.response?.data?.message || err.response?.data?.error || "Terjadi kesalahan, coba lagi nanti",
-      });
-    }
+    }, 200);
   };
 
 
@@ -122,11 +138,16 @@ function Profile() {
           ) : (
             <form onSubmit={handleSubmit} className="w-full">
               <div className="mb-4 relative">
-                <img
-                  src={avatarPreview}
-                  alt="avatar"
-                  className="object-cover rounded-xl h-56 w-full shadow-2xl border-4 border-gray-700"
-                />
+                <div 
+                  className="flex items-center justify-center rounded-xl h-56 w-full shadow-2xl border-4 border-gray-700 bg-gradient-to-br from-gray-600 to-gray-700 text-8xl"
+                  style={{
+                    backgroundImage: avatarPreview && (avatarPreview.startsWith('data:') || avatarPreview.startsWith('blob:') || avatarPreview.startsWith('http')) ? `url(${avatarPreview})` : 'none',
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center'
+                  }}
+                >
+                  {(!avatarPreview || (!avatarPreview.startsWith('data:') && !avatarPreview.startsWith('blob:') && !avatarPreview.startsWith('http'))) && '👤'}
+                </div>
                 <div className="absolute top-3 right-3 bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-xs px-3 py-1 rounded-full font-semibold shadow-lg">
                   {user?.is_premium ? "👑 Premium" : "🆓 Gratis"}
                 </div>

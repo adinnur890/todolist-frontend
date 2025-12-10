@@ -47,53 +47,63 @@ const AuthController = create((set) => ({
     
     if (!cleanEmail || !password) {
       set({ error: "Masukkan email dan password" });
-      return;
+      throw new Error("Masukkan email dan password");
     }
 
-    try {
-      // Coba login ke Laravel backend
-      const response = await axios.post(`${baseUrl}/login`, {
-        email: cleanEmail,
-        password: password
-      });
-      
-      const { token, user } = response.data;
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
-      set({ token, user, error: null });
-      
-      window.location.replace('/dashboard');
-    } catch (err) {
-      // Fallback ke localStorage
-      const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
-      const foundUser = registeredUsers.find(user => 
-        user.email === cleanEmail && user.password === password
-      );
-      
-      if (!foundUser && cleanEmail !== 'adinadmin@gmail.com') {
-        set({ error: "Email atau password salah" });
-        throw new Error("Email atau password salah");
-      }
-
-      const user = foundUser || {
-        id: 1,
+    // Langsung pakai localStorage, skip backend
+    const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+    const foundUser = registeredUsers.find(user => 
+      user.email === cleanEmail && user.password === password
+    );
+    
+    // Special case untuk admin
+    if (cleanEmail === 'adinadmin@gmail.com' && password === 'admin123') {
+      const adminUser = {
+        id: 'admin-1',
         name: 'Admin',
         email: cleanEmail,
         role: 'admin',
-        is_premium: 1
+        is_premium: true
       };
       
-      user.role = cleanEmail === 'adinadmin@gmail.com' ? 'admin' : 'user';
-      user.is_premium = cleanEmail === 'adinadmin@gmail.com' ? 1 : 0;
-      
-      const token = "token-" + Date.now();
-      
+      const token = "admin-token-" + Date.now();
       localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
-      set({ token, user, error: null });
+      localStorage.setItem('user', JSON.stringify(adminUser));
+      set({ token, user: adminUser, error: null });
       
-      window.location.replace('/dashboard');
+      navigate('/dashboard');
+      return;
     }
+    
+    if (!foundUser) {
+      set({ error: "Email atau password salah" });
+      throw new Error("Email atau password salah");
+    }
+
+    // Check premium status and expiry
+    let user = { ...foundUser };
+    if (foundUser.premium_expires_at) {
+      const expiryDate = new Date(foundUser.premium_expires_at);
+      const now = new Date();
+      user.is_premium = expiryDate > now;
+      
+      // If expired, update in localStorage
+      if (expiryDate <= now && foundUser.is_premium) {
+        const userIndex = registeredUsers.findIndex(u => u.email === cleanEmail);
+        if (userIndex !== -1) {
+          registeredUsers[userIndex].is_premium = false;
+          localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
+          user.is_premium = false;
+        }
+      }
+    }
+    
+    const token = "user-token-" + Date.now();
+    localStorage.setItem('token', token);
+    localStorage.setItem('user', JSON.stringify(user));
+    set({ token, user, error: null });
+    
+    navigate('/dashboard');
   },
 
   logout: async () => {
@@ -110,6 +120,9 @@ const AuthController = create((set) => ({
     set({ user: null, token: null });
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+    // Clear global todos and subtasks on logout (keep per-user data)
+    localStorage.removeItem('todos');
+    localStorage.removeItem('subtasks');
   },
 
   register: async (data, navigate) => {
@@ -158,6 +171,8 @@ const AuthController = create((set) => ({
         name: data.name,
         email: cleanEmail,
         password: data.password,
+        role: 'user',
+        is_premium: false,
         created_at: new Date().toISOString()
       };
       

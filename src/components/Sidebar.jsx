@@ -1,4 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 import AuthController from "../controllers/AuthController";
 import Swal from "sweetalert2";
 
@@ -13,6 +14,29 @@ function Sidebar({ isOpen, onClose }) {
   const logout = AuthController((state) => state.logout);
   const navigate = useNavigate();
   const user = AuthController((state) => state.user);
+  const [userAvatar, setUserAvatar] = useState(null);
+
+  useEffect(() => {
+    if (user?.email) {
+      const userKey = user.email || 'default';
+      const savedAvatar = localStorage.getItem(`avatar_${userKey}`);
+      setUserAvatar(savedAvatar);
+    }
+  }, [user]);
+
+  // Listen for avatar changes
+  useEffect(() => {
+    const handleStorageChange = () => {
+      if (user?.email) {
+        const userKey = user.email || 'default';
+        const savedAvatar = localStorage.getItem(`avatar_${userKey}`);
+        setUserAvatar(savedAvatar);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [user]);
 
   const handleLogout = async () => {
     try {
@@ -48,15 +72,16 @@ function Sidebar({ isOpen, onClose }) {
 
         <div className="flex flex-col items-center px-4 mb-6">
           <div className="relative">
-            <img
-              src={
-                user?.avatar
-                  ? `http://localhost:8000/storage/${user.avatar}`
-                  : "/src/assets/profile-default.png"
-              }
-              alt="Profile"
-              className="w-24 h-24 rounded-full object-cover border-4 border-gradient-to-r from-yellow-400 to-orange-500 shadow-xl"
-            />
+            <div 
+              className="w-24 h-24 rounded-full border-4 border-yellow-400 shadow-xl flex items-center justify-center bg-gradient-to-br from-gray-600 to-gray-700 text-4xl"
+              style={{
+                backgroundImage: userAvatar && (userAvatar.startsWith('data:') || userAvatar.startsWith('blob:')) ? `url(${userAvatar})` : 'none',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center'
+              }}
+            >
+              {(!userAvatar || (!userAvatar.startsWith('data:') && !userAvatar.startsWith('blob:'))) && '👤'}
+            </div>
             <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-2 border-gray-900"></div>
           </div>
           <p className="text-white font-semibold text-base mt-3">
@@ -83,12 +108,20 @@ function Sidebar({ isOpen, onClose }) {
             // Admin Menu
             <>
               <Link
-                to="/admin/premium"
+                to="/dashboard"
                 className={
-                  location.pathname === "/admin/premium" ? activeClass : baseClass
+                  location.pathname === "/dashboard" ? activeClass : baseClass
                 }
               >
-                <i className="fa-regular fa-user-shield"></i> Admin Panel
+                <i className="fa-regular fa-shield-halved"></i> Control Panel
+              </Link>
+              <Link
+                to="/add-admin"
+                className={
+                  location.pathname === "/add-admin" ? activeClass : baseClass
+                }
+              >
+                <i className="fa-regular fa-user-plus"></i> Tambah Admin
               </Link>
               <Link
                 to="/profile"

@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import AuthController from '../controllers/AuthController';
 
@@ -10,6 +9,7 @@ const AdminPremium = () => {
   const [planId, setPlanId] = useState('1');
   const [voucherCode, setVoucherCode] = useState('');
   const [loading, setLoading] = useState(false);
+  const [pageLoading, setPageLoading] = useState(true);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [premiumCount, setPremiumCount] = useState(0);
@@ -18,64 +18,93 @@ const AdminPremium = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [usersPerPage] = useState(10);
+  const [showAddAdminModal, setShowAddAdminModal] = useState(false);
+  const [adminForm, setAdminForm] = useState({ name: '', email: '', password: '' });
 
-  // Fetch premium users count
+  // Fetch premium users count from localStorage (exclude admins)
   const fetchPremiumCount = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.get('http://localhost:8000/api/admin/premium-count', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setPremiumCount(res.data.count || 0);
-      console.log('Premium stats:', res.data);
+      const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+      const premiumUsers = registeredUsers.filter(user => 
+        user.is_premium && user.role !== 'admin'
+      );
+      setPremiumCount(premiumUsers.length);
     } catch (err) {
       console.error('Failed to fetch premium count:', err);
       setPremiumCount(0);
     }
   };
 
-  // Fetch all users
+  // Fetch all users from localStorage
   const fetchUsers = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.get('http://localhost:8000/api/admin/users', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setUsers(res.data.users || []);
+      const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+      // Add admin user if not exists
+      const adminExists = registeredUsers.find(u => u.email === 'adinadmin@gmail.com');
+      if (!adminExists) {
+        registeredUsers.push({
+          id: 'admin-1',
+          name: 'Admin',
+          email: 'adinadmin@gmail.com',
+          role: 'admin',
+          is_premium: true,
+          created_at: new Date().toISOString()
+        });
+      }
+      setUsers(registeredUsers);
     } catch (err) {
       console.error('Failed to fetch users:', err);
       setUsers([]);
     }
   };
 
-  // Quick activate premium
+  // Quick activate premium in localStorage
   const quickActivatePremium = async (userEmail, planId = 1) => {
     try {
-      const token = localStorage.getItem('token');
-      await axios.post('http://localhost:8000/api/admin/activate-premium', {
-        user_email: userEmail,
-        plan_id: planId
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+      const userIndex = registeredUsers.findIndex(u => u.email === userEmail);
+      
+      if (userIndex === -1) {
+        setError(`❌ User dengan email ${userEmail} tidak ditemukan`);
+        return;
+      }
+      
+      // Calculate expiry date based on plan
+      const durationMonths = planId === 1 ? 1 : planId === 2 ? 3 : 12;
+      const expiryDate = new Date();
+      expiryDate.setMonth(expiryDate.getMonth() + durationMonths);
+      
+      // Update user premium status
+      registeredUsers[userIndex] = {
+        ...registeredUsers[userIndex],
+        is_premium: true,
+        premium_expires_at: expiryDate.toISOString(),
+        premium_activated_at: new Date().toISOString()
+      };
+      
+      localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
       
       setMessage(`✅ Premium berhasil diaktifkan untuk ${userEmail}!`);
       fetchUsers();
       fetchPremiumCount();
+      
+      // Clear message after 3 seconds
+      setTimeout(() => setMessage(''), 3000);
     } catch (err) {
-      const errorMsg = err.response?.data?.message || 'Gagal mengaktifkan premium';
-      setError(`❌ ${errorMsg}`);
+      setError(`❌ Gagal mengaktifkan premium: ${err.message}`);
     }
   };
 
   // Check if user is admin
   useEffect(() => {
-    if (!user) {
+    const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+    
+    if (!currentUser || !currentUser.email) {
       navigate('/login');
       return;
     }
     
-    if (user.role !== 'admin') {
+    if (currentUser.role !== 'admin') {
       setError('❌ Akses ditolak. Halaman ini khusus admin.');
       setTimeout(() => navigate('/dashboard'), 3000);
       return;
@@ -84,7 +113,19 @@ const AdminPremium = () => {
     // Fetch data when component loads
     fetchPremiumCount();
     fetchUsers();
-  }, [user, navigate]);
+    setPageLoading(false);
+  }, [navigate]);
+
+  if (pageLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-purple-400 mx-auto mb-4"></div>
+          <p className="text-white text-lg">Loading Admin Panel...</p>
+        </div>
+      </div>
+    );
+  }
 
   const plans = [
     { id: 1, name: 'Premium 1 Bulan', duration: 1 },
@@ -104,15 +145,31 @@ const AdminPremium = () => {
       setError('');
       setMessage('');
 
-      const token = localStorage.getItem('token');
-      const res = await axios.post('http://localhost:8000/api/admin/activate-premium', {
-        user_email: userEmail,
-        plan_id: parseInt(planId),
-        voucher_code: voucherCode || null
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
+      const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+      const userIndex = registeredUsers.findIndex(u => u.email === userEmail);
+      
+      if (userIndex === -1) {
+        setError(`❌ User dengan email ${userEmail} tidak ditemukan`);
+        setLoading(false);
+        return;
+      }
+      
+      // Calculate expiry date based on plan
+      const durationMonths = parseInt(planId) === 1 ? 1 : parseInt(planId) === 2 ? 3 : 12;
+      const expiryDate = new Date();
+      expiryDate.setMonth(expiryDate.getMonth() + durationMonths);
+      
+      // Update user premium status
+      registeredUsers[userIndex] = {
+        ...registeredUsers[userIndex],
+        is_premium: true,
+        premium_expires_at: expiryDate.toISOString(),
+        premium_activated_at: new Date().toISOString(),
+        voucher_used: voucherCode || null
+      };
+      
+      localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
+      
       setMessage(`✅ Premium berhasil diaktifkan untuk ${userEmail}!`);
       setUserEmail('');
       setVoucherCode('');
@@ -121,11 +178,81 @@ const AdminPremium = () => {
       fetchPremiumCount();
       fetchUsers();
       
+      // Clear message after 3 seconds
+      setTimeout(() => setMessage(''), 3000);
+      
     } catch (err) {
-      const errorMsg = err.response?.data?.message || 'Gagal mengaktifkan premium';
-      setError(`❌ ${errorMsg}`);
+      setError(`❌ Gagal mengaktifkan premium: ${err.message}`);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAddAdmin = async (e) => {
+    e.preventDefault();
+    
+    if (!adminForm.name || !adminForm.email || !adminForm.password) {
+      setError('Semua field harus diisi');
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+      
+      // Check if email already exists
+      const emailExists = registeredUsers.find(u => u.email === adminForm.email);
+      if (emailExists) {
+        setError('Email sudah terdaftar');
+        setLoading(false);
+        return;
+      }
+      
+      const newAdmin = {
+        id: Date.now(),
+        name: adminForm.name,
+        email: adminForm.email,
+        password: adminForm.password,
+        role: 'admin',
+        is_premium: true,
+        created_at: new Date().toISOString()
+      };
+      
+      registeredUsers.push(newAdmin);
+      localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
+      
+      setMessage(`✅ Admin ${adminForm.email} berhasil ditambahkan!`);
+      setAdminForm({ name: '', email: '', password: '' });
+      setShowAddAdminModal(false);
+      fetchUsers();
+      
+      setTimeout(() => setMessage(''), 3000);
+    } catch (err) {
+      setError(`❌ Gagal menambah admin: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleClearAllData = () => {
+    if (confirm('Hapus semua data user (kecuali admin)?')) {
+      // Keep only admin users
+      const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+      const adminUsers = registeredUsers.filter(user => user.role === 'admin');
+      localStorage.setItem('registeredUsers', JSON.stringify(adminUsers));
+      
+      // Clear all user todos and subtasks
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('todos_') || key.startsWith('subtasks_')) {
+          localStorage.removeItem(key);
+        }
+      });
+      
+      // Refresh data
+      fetchUsers();
+      fetchPremiumCount();
+      
+      alert('Semua data user berhasil dihapus!');
     }
   };
 
@@ -140,7 +267,7 @@ const AdminPremium = () => {
         {/* Header */}
         <div className="text-center mb-12">
           <div className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-br from-purple-500 to-blue-600 rounded-full shadow-2xl mb-6 animate-bounce">
-            <span className="text-4xl">👑</span>
+            <span className="text-4xl text-white font-bold">👑</span>
           </div>
           <h1 className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 mb-4">
             Admin Control Panel
@@ -153,7 +280,7 @@ const AdminPremium = () => {
           <div className="bg-gradient-to-br from-gray-800/80 to-gray-900/80 backdrop-blur-xl rounded-3xl shadow-2xl p-8 border border-purple-500/30">
 
             <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
-              <span className="w-8 h-8 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center text-sm">🚀</span>
+              <span className="w-8 h-8 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center text-sm text-white font-bold">🚀</span>
               Aktivasi Premium
             </h2>
 
@@ -178,7 +305,7 @@ const AdminPremium = () => {
             <form onSubmit={handleActivate} className="space-y-6">
               <div className="space-y-2">
                 <label className="flex items-center gap-2 text-sm font-semibold text-purple-300">
-                  <span className="w-6 h-6 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center text-xs">📧</span>
+                  <span className="w-6 h-6 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center text-xs text-white font-bold">📧</span>
                   Email User
                 </label>
                 <input
@@ -193,7 +320,7 @@ const AdminPremium = () => {
 
               <div className="space-y-2">
                 <label className="flex items-center gap-2 text-sm font-semibold text-purple-300">
-                  <span className="w-6 h-6 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center text-xs">📦</span>
+                  <span className="w-6 h-6 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center text-xs text-white font-bold">📦</span>
                   Paket Premium
                 </label>
                 <select
@@ -211,7 +338,7 @@ const AdminPremium = () => {
 
               <div className="space-y-2">
                 <label className="flex items-center gap-2 text-sm font-semibold text-purple-300">
-                  <span className="w-6 h-6 bg-gradient-to-r from-pink-500 to-rose-500 rounded-lg flex items-center justify-center text-xs">🎫</span>
+                  <span className="w-6 h-6 bg-gradient-to-r from-pink-500 to-rose-500 rounded-lg flex items-center justify-center text-xs text-white font-bold">🎫</span>
                   Kode Voucher (opsional)
                 </label>
                 <input
@@ -316,10 +443,18 @@ const AdminPremium = () => {
         {/* User Management Table */}
         <div className="mt-12 bg-gradient-to-br from-gray-800/80 to-gray-900/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-purple-500/30 overflow-hidden">
           <div className="p-8">
-            <h2 className="text-3xl font-bold text-white mb-6 flex items-center gap-3">
-              <span className="w-10 h-10 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center text-lg">👥</span>
-              User Management
-            </h2>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-3xl font-bold text-white flex items-center gap-3">
+                <span className="w-10 h-10 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center text-lg">👥</span>
+                User Management
+              </h2>
+              <button
+                onClick={handleClearAllData}
+                className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-4 py-2 rounded-xl font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg text-sm"
+              >
+                🗑️ Bersihkan Data
+              </button>
+            </div>
 
             {/* Search & Filter */}
             <div className="flex flex-col md:flex-row gap-4 mb-6">
@@ -484,6 +619,81 @@ const AdminPremium = () => {
             </div>
           </div>
         </div>
+
+        {/* Add Admin Modal */}
+        {showAddAdminModal && (
+          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-6 backdrop-blur">
+            <div className="bg-gray-900 rounded-2xl shadow-2xl p-8 w-full max-w-md border border-purple-500/30">
+              <h2 className="text-2xl font-bold text-white mb-6 text-center">
+                👤 Tambah Admin Baru
+              </h2>
+              
+              <form onSubmit={handleAddAdmin} className="space-y-4">
+                <div>
+                  <label className="block text-purple-300 font-semibold mb-2">
+                    Nama Lengkap
+                  </label>
+                  <input
+                    type="text"
+                    value={adminForm.name}
+                    onChange={(e) => setAdminForm({...adminForm, name: e.target.value})}
+                    className="w-full bg-gray-800/50 border border-purple-500/30 rounded-xl px-4 py-3 text-white placeholder-gray-400 focus:border-purple-400 focus:outline-none transition-all"
+                    placeholder="Nama admin"
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-purple-300 font-semibold mb-2">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    value={adminForm.email}
+                    onChange={(e) => setAdminForm({...adminForm, email: e.target.value})}
+                    className="w-full bg-gray-800/50 border border-purple-500/30 rounded-xl px-4 py-3 text-white placeholder-gray-400 focus:border-purple-400 focus:outline-none transition-all"
+                    placeholder="admin@example.com"
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-purple-300 font-semibold mb-2">
+                    Password
+                  </label>
+                  <input
+                    type="password"
+                    value={adminForm.password}
+                    onChange={(e) => setAdminForm({...adminForm, password: e.target.value})}
+                    className="w-full bg-gray-800/50 border border-purple-500/30 rounded-xl px-4 py-3 text-white placeholder-gray-400 focus:border-purple-400 focus:outline-none transition-all"
+                    placeholder="Password admin"
+                    required
+                  />
+                </div>
+                
+                <div className="flex gap-3 mt-6">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowAddAdminModal(false);
+                      setAdminForm({ name: '', email: '', password: '' });
+                    }}
+                    className="flex-1 bg-gray-600 hover:bg-gray-500 text-white py-3 rounded-xl font-semibold transition-all"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="flex-1 bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white py-3 rounded-xl font-semibold disabled:opacity-50 transition-all"
+                  >
+                    {loading ? 'Menyimpan...' : 'Tambah Admin'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

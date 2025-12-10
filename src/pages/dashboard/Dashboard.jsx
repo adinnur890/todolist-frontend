@@ -1,18 +1,57 @@
 import { useEffect, useState } from "react";
 import { todoService } from "../../services/todoService";
 import { Link } from "react-router-dom";
+import AdminPremium from "../AdminPremium";
 
 function Dashboard() {
   const [todos, setTodos] = useState([]);
   const [loading, setLoading] = useState(true);
-
-
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
-    // Simulasi data todos
-    setTodos([{id: 1, title: 'Sample Todo'}]);
-    setLoading(false);
+    const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+    setUser(currentUser);
+    
+    const loadTodos = () => {
+      const userKey = currentUser.email || 'default';
+      const savedTodos = JSON.parse(localStorage.getItem(`todos_${userKey}`) || '[]');
+      setTodos(savedTodos);
+      setLoading(false);
+    };
+    
+    loadTodos();
+    
+    // Listen for storage changes
+    const handleStorageChange = () => {
+      loadTodos();
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('focus', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('focus', handleStorageChange);
+    };
   }, []);
+
+  // Debug user
+  console.log('Current user:', user);
+  
+  // Jika admin, langsung tampilkan AdminPremium
+  if (user?.role === 'admin' || user?.email === 'adinadmin@gmail.com') {
+    return <AdminPremium />;
+  }
+
+  // Loading state
+  if (!user || !user.email) {
+    return (
+      <div className="text-center py-12">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-yellow-400 mx-auto mb-4"></div>
+        <p className="text-white">Loading...</p>
+      </div>
+    );
+  }
 
   return (
     <>

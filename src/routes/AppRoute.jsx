@@ -16,6 +16,8 @@ import Setting from "../pages/dashboard/Setting";
 import Plans from "../pages/dashboard/Plan";
 import Premium from "../pages/Premium";
 import AdminPremium from "../pages/AdminPremium";
+import AddAdmin from "../pages/AddAdmin";
+
 
 ``
 function AppRoute() {
@@ -38,7 +40,9 @@ function AppRoute() {
         <Route path="/setting" element={<Setting />} />
         <Route path="/plans" element={<Plans />} />
         <Route path="/premium" element={<Premium />} />
-        <Route path="/admin/premium" element={<AdminPremium />} />
+        <Route path="/admin-premium" element={<AdminPremium />} />
+        <Route path="/add-admin" element={<AddAdmin />} />
+
       </Route>
     </Routes>
   );
