@@ -114,17 +114,19 @@ const AuthController = create((set) => ({
 
   register: async (data, navigate) => {
     try {
+      // Debug data mentah
+      console.log('Raw data from form:', data);
+      
       const cleanData = {
-        name: data.name,
-        email: data.email.replace('mailto:', ''),
-        password: data.password
+        name: data.name || 'Unknown',
+        email: data.email ? data.email.replace('mailto:', '') : '',
+        password: data.password || ''
       };
       
-      // Debug data yang dikirim
-      console.log('Sending data:', cleanData);
+      console.log('Clean data to send:', cleanData);
       
       // Pakai file PHP khusus
-      const response = await axios.post(`${baseUrl}/api_register.php`, cleanData, {
+      const response = await axios.post(`${baseUrl}/api_register.php`, JSON.stringify(cleanData), {
         headers: {
           'Content-Type': 'application/json'
         }
