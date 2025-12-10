@@ -120,8 +120,8 @@ const AuthController = create((set) => ({
         password: data.password
       };
       
-      // Pakai endpoint yang sama dengan login
-      const response = await axios.post(`${baseUrl}/register`, cleanData, {
+      // Pakai file PHP khusus
+      const response = await axios.post(`${baseUrl}/api_register.php`, cleanData, {
         headers: {
           'Content-Type': 'application/json'
         }
