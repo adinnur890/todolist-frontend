@@ -1,7 +1,7 @@
   import axios from "axios";
 import { create } from "zustand";
 
-const baseUrl = "https://todolistpremium.ct.ws/backend_tododin/public/api";
+const baseUrl = "http://localhost:8000/api";
 const savedToken = localStorage.getItem("token");
 const savedUserRaw = localStorage.getItem("user");
 const savedUser =
