@@ -9,10 +9,24 @@ include_once 'database.php';
 $database = new Database();
 $db = $database->getConnection();
 
+// Cleanup email kosong jika ada parameter cleanup
+if (isset($_GET['cleanup'])) {
+    try {
+        $cleanup_query = "DELETE FROM users WHERE email = '' OR email IS NULL";
+        $cleanup_stmt = $db->prepare($cleanup_query);
+        if ($cleanup_stmt->execute()) {
+            echo json_encode(array("message" => "Berhasil menghapus " . $cleanup_stmt->rowCount() . " user dengan email kosong"));
+        }
+    } catch (PDOException $e) {
+        echo json_encode(array("error" => $e->getMessage()));
+    }
+    exit();
+}
+
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $data = json_decode(file_get_contents("php://input"));
     
-    if (!empty($data->name) && !empty($data->email) && !empty($data->password)) {
+    if (!empty($data->name) && !empty($data->email) && !empty($data->password) && trim($data->email) !== '') {
         
         // Cek email sudah ada
         $check_query = "SELECT id FROM users WHERE email = :email";
@@ -36,12 +50,22 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $stmt->bindParam(":email", $data->email);
         $stmt->bindParam(":password", $hashed_password);
         
-        if ($stmt->execute()) {
-            http_response_code(201);
-            echo json_encode(array("message" => "User berhasil didaftarkan"));
-        } else {
-            http_response_code(503);
-            echo json_encode(array("message" => "Gagal mendaftarkan user"));
+        try {
+            if ($stmt->execute()) {
+                http_response_code(201);
+                echo json_encode(array("message" => "User berhasil didaftarkan"));
+            } else {
+                http_response_code(503);
+                echo json_encode(array("message" => "Gagal mendaftarkan user"));
+            }
+        } catch (PDOException $e) {
+            if ($e->getCode() == 23000) {
+                http_response_code(400);
+                echo json_encode(array("error" => "Email sudah terdaftar"));
+            } else {
+                http_response_code(503);
+                echo json_encode(array("error" => "Database error: " . $e->getMessage()));
+            }
         }
     } else {
         http_response_code(400);
