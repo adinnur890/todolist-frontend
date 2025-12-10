@@ -13,6 +13,22 @@ include_once 'database.php';
 $database = new Database();
 $db = $database->getConnection();
 
+// Auto create subtasks table if not exists
+try {
+    $create_table = "CREATE TABLE IF NOT EXISTS subtasks (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        todo_id INT NOT NULL,
+        title VARCHAR(255) NOT NULL,
+        status ENUM('pending', 'completed') DEFAULT 'pending',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (todo_id) REFERENCES todos(id) ON DELETE CASCADE
+    )";
+    $db->exec($create_table);
+} catch (PDOException $e) {
+    // Table already exists or other error, continue
+}
+
 // Get token from header
 $headers = apache_request_headers();
 $token = null;
