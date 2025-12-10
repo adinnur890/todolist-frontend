@@ -120,12 +120,17 @@ const AuthController = create((set) => ({
         password: data.password
       };
       
+      // Debug data yang dikirim
+      console.log('Sending data:', cleanData);
+      
       // Pakai file PHP khusus
       const response = await axios.post(`${baseUrl}/api_register.php`, cleanData, {
         headers: {
           'Content-Type': 'application/json'
         }
       });
+      
+      console.log('Response:', response.data);
       
       set({ error: null });
       navigate("/login");
