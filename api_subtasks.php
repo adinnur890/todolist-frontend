@@ -30,10 +30,14 @@ try {
 }
 
 // Get token from header
-$headers = apache_request_headers();
 $token = null;
-if (isset($headers['Authorization'])) {
-    $token = str_replace('Bearer ', '', $headers['Authorization']);
+if (function_exists('getallheaders')) {
+    $headers = getallheaders();
+    if (isset($headers['Authorization'])) {
+        $token = str_replace('Bearer ', '', $headers['Authorization']);
+    }
+} elseif (isset($_SERVER['HTTP_AUTHORIZATION'])) {
+    $token = str_replace('Bearer ', '', $_SERVER['HTTP_AUTHORIZATION']);
 }
 
 if (!$token) {

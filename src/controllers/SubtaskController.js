@@ -21,7 +21,7 @@ const SubtaskController = create((set) => ({
     try {
       const token = localStorage.getItem("token");
 
-      const res = await axios.get(`${api}/api_subtasks.php?todo_id=${todoId}`, {
+      const res = await axios.get(`${api}/simple_subtask.php?todo_id=${todoId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -45,7 +45,7 @@ const SubtaskController = create((set) => ({
     try {
       const token = localStorage.getItem("token");
 
-      const res = await axios.post(`${api}/api_subtasks.php?todo_id=${todoId}`, data, {
+      const res = await axios.post(`${api}/simple_subtask.php?todo_id=${todoId}`, data, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
