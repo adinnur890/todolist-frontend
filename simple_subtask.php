@@ -3,8 +3,10 @@ header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
+header("Access-Control-Max-Age: 3600");
 
 if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
+    http_response_code(200);
     exit(0);
 }
 
@@ -28,11 +30,16 @@ try {
         echo json_encode($subtasks);
     } elseif ($method == 'POST') {
         $todo_id = $_GET['todo_id'] ?? null;
-        $data = json_decode(file_get_contents("php://input"));
+        $raw_input = file_get_contents("php://input");
+        $data = json_decode($raw_input);
+        
+        // Debug log
+        error_log("POST Data: " . $raw_input);
+        error_log("Todo ID: " . $todo_id);
         
         if (!$todo_id || !isset($data->title)) {
             http_response_code(400);
-            echo json_encode(array("message" => "Data tidak lengkap"));
+            echo json_encode(array("message" => "Data tidak lengkap", "debug" => array("todo_id" => $todo_id, "data" => $data)));
             exit();
         }
 
