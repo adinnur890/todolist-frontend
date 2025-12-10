@@ -109,21 +109,7 @@ const SubtaskController = create((set) => ({
 
   changeStatus: async (subtaskId, status) => {
     try {
-      const token = localStorage.getItem("token");
-
-      await axios.post(
-        `${api}/api_subtasks.php/change-status`,
-        {
-          subtask_id: subtaskId,
-          status: status,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
+      // Dummy update status
       set((state) => ({
         subtasks: state.subtasks.map((item) =>
           item.id === subtaskId ? { ...item, status } : item
@@ -132,8 +118,7 @@ const SubtaskController = create((set) => ({
         error: null,
       }));
     } catch (err) {
-      handleUnauthorized(err);
-      const message = err.response?.data?.message || "Gagal memperbarui status";
+      const message = "Gagal memperbarui status";
       set({ error: message });
       throw err;
     }
