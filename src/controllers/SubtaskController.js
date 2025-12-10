@@ -43,6 +43,7 @@ const SubtaskController = create((set) => ({
 
   createSubtask: async (todoId, data) => {
     try {
+      console.log("Creating subtask:", { todoId, data });
       const token = localStorage.getItem("token");
 
       const res = await axios.post(`${api}/simple_subtask.php?todo_id=${todoId}`, data, {
@@ -51,12 +52,14 @@ const SubtaskController = create((set) => ({
         },
       });
 
+      console.log("Subtask response:", res.data);
       set((state) => ({
         subtasks: [...state.subtasks, res.data],
         success: "Subtask berhasil ditambahkan",
         error: null,
       }));
     } catch (err) {
+      console.error("Subtask error:", err);
       handleUnauthorized(err);
       const message =
         err.response?.data?.message || "Gagal menambahkan subtask";
