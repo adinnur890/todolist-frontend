@@ -1,7 +1,7 @@
   import axios from "axios";
 import { create } from "zustand";
 
-const baseUrl = "https://todolistpremium.ct.ws/backend_tododin/public/api";
+const baseUrl = "http://127.0.0.1:8000/api";
 const savedToken = localStorage.getItem("token");
 const savedUserRaw = localStorage.getItem("user");
 const savedUser =
@@ -42,9 +42,15 @@ const AuthController = create((set) => ({
 
   login: async (email, password, navigate) => {
     try {
+      const cleanEmail = email.replace('mailto:', '');
+      
       const res = await axios.post(`${baseUrl}/login`, {
-        email,
+        email: cleanEmail,
         password,
+      }, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
       });
       
       const { token, user } = res.data;
@@ -54,9 +60,8 @@ const AuthController = create((set) => ({
 
       navigate("/todo-list");
     } catch (err) {
-      const errorMsg = err.response?.data?.message || 
-                       err.response?.data?.error || 
-                       "Terjadi kesalahan";
+      console.error('Login error:', err.response?.data);
+      const errorMsg = err.response?.data?.message || "Login failed";
       set({ error: errorMsg });
       throw err;
     }
@@ -80,16 +85,21 @@ const AuthController = create((set) => ({
 
   register: async (data, navigate) => {
     try {
-      await axios.post(`${baseUrl}/register`, data);
+      const cleanData = {
+        ...data,
+        email: data.email.replace('mailto:', '')
+      };
+      
+      await axios.post(`${baseUrl}/register`, cleanData, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
       set({ error: null });
       navigate("/login");
     } catch (err) {
-      const errorMsg =
-        err.response?.data?.errors?.email?.[0] ||
-        err.response?.data?.errors?.password?.[0] ||
-        err.response?.data?.message ||
-        "Terjadi kesalahan saat register";
-
+      console.error('Register error:', err.response?.data);
+      const errorMsg = err.response?.data?.message || "Registration failed";
       set({ error: errorMsg });
       throw err;
     }
