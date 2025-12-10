@@ -1,148 +1,81 @@
-// src/pages/Plans.jsx
-import { useEffect, useState } from "react";
-import axios from "axios";
-import Swal from "sweetalert2";
+import React from 'react';
 
-const baseUrl = "http://localhost:8000/api";
-
-function Plans() {
-  const [plans, setPlans] = useState([]);
-  const [selectedPlan, setSelectedPlan] = useState(null);
-  const [voucherCode, setVoucherCode] = useState("");
-  const [voucher, setVoucher] = useState(null);
-  const [finalPrice, setFinalPrice] = useState(0);
-
-  const checkVoucher = async (planId, code) => {
-    if (!code) {
-      setVoucher(null);
-      return;
-    }
-    try {
-      const token = localStorage.getItem("token");
-      const res = await axios.post(
-        `${baseUrl}/vouchers/check`,
-        { code, plan_id: planId },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setVoucher(res.data.voucher);
-      setFinalPrice(res.data.final_price);
-      Swal.fire({
-        icon: "success",
-        title: "Voucher Valid!",
-        text: res.data.message,
-        timer: 2000,
-      });
-    } catch (err) {
-      setVoucher(null);
-      Swal.fire({
-        icon: "error",
-        title: "Voucher Tidak Valid",
-        text: err.response?.data?.message || "Kode voucher salah",
-      });
-    }
-  };
-
-  const handleBuyPremium = (plan) => {
-    const user = JSON.parse(localStorage.getItem("user") || "{}");
-    const phoneNumber = "628979045222";
-    const price = voucher ? finalPrice : plan.price;
-    const discount = voucher ? plan.price - finalPrice : 0;
-    
-    const message = encodeURIComponent(
-      `Halo, saya ingin upgrade ke Premium TodoList\n\n` +
-      `Paket: ${plan.name}\n` +
-      `Harga Normal: Rp ${plan.price.toLocaleString()}\n` +
-      (voucher ? `Kode Voucher: ${voucherCode}\n` : "") +
-      (voucher ? `Diskon: Rp ${discount.toLocaleString()}\n` : "") +
-      `Harga Bayar: Rp ${price.toLocaleString()}\n\n` +
-      `Data Akun:\n` +
-      `Nama: ${user.name || "-"}\n` +
-      `Email: ${user.email || "-"}`
-    );
-    window.open(`https://wa.me/${phoneNumber}?text=${message}`, "_blank");
-  };
-
-  useEffect(() => {
-    const fetchPlans = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        const res = await axios.get(`${baseUrl}/plans`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        setPlans(res.data);
-      } catch (error) {
-        Swal.fire({
-          icon: "error",
-          title: "Gagal",
-          text: "Gagal mengambil data paket premium",
-        });
-      }
-    };
-
-    fetchPlans();
-  }, []);
-
+function Plan() {
   return (
-    <div className="container mx-auto py-8 px-4">
-      <h1 className="text-2xl font-bold text-white mb-6">Pilih Paket Premium</h1>
-      <div className="grid md:grid-cols-3 sm:grid-cols-2 grid-cols-1 gap-6">
-        {plans.map((plan) => (
-          <div key={plan.id} className="bg-gray-900 text-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-semibold mb-2">{plan.name}</h2>
-            <p className="text-gray-300 mb-4">{plan.description}</p>
-            
-            {selectedPlan === plan.id && voucher ? (
-              <div className="mb-4">
-                <p className="text-gray-400 line-through text-sm">
-                  Rp {plan.price.toLocaleString()}
-                </p>
-                <p className="text-green-400 text-lg font-bold">
-                  Rp {finalPrice.toLocaleString()}
-                </p>
-                <p className="text-xs text-green-300">
-                  Hemat Rp {(plan.price - finalPrice).toLocaleString()}
-                </p>
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 py-8">
+      <div className="max-w-6xl mx-auto px-4">
+        <div className="text-center mb-12">
+          <h1 className="text-4xl xl:text-5xl font-bold text-white mb-4">
+            Pilih <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500">Paket Premium</span>
+          </h1>
+          <p className="text-gray-400 text-lg">🚀 Upgrade untuk fitur unlimited dan pengalaman terbaik</p>
+        </div>
+        
+        <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+          <div className="bg-gradient-to-br from-gray-800 to-gray-900 p-8 rounded-3xl shadow-xl border-2 border-gray-700">
+            <div className="text-center mb-6">
+              <div className="w-20 h-20 bg-gradient-to-br from-blue-400 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+                <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
+                </svg>
               </div>
-            ) : (
-              <p className="text-yellow-400 text-lg font-bold mb-4">
-                Rp {plan.price.toLocaleString()}
-              </p>
-            )}
-
-            <div className="mb-4">
-              <input
-                type="text"
-                placeholder="Kode Voucher (opsional)"
-                value={selectedPlan === plan.id ? voucherCode : ""}
-                onChange={(e) => {
-                  setSelectedPlan(plan.id);
-                  setVoucherCode(e.target.value.toUpperCase());
-                }}
-                className="w-full px-3 py-2 bg-gray-800 text-white rounded mb-2"
-              />
-              {selectedPlan === plan.id && voucherCode && (
-                <button
-                  onClick={() => checkVoucher(plan.id, voucherCode)}
-                  className="w-full bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm"
-                >
-                  Cek Voucher
-                </button>
-              )}
+              <h3 className="text-3xl font-bold text-white mb-2">Gratis</h3>
+              <div className="text-5xl font-bold text-white mb-4">Rp 0</div>
+              <p className="text-gray-400">Selamanya</p>
             </div>
-
-            <button
-              onClick={() => handleBuyPremium(plan)}
-              className="w-full bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-semibold px-4 py-2 rounded"
-            >
-              Hubungi Admin
+            <ul className="space-y-4 mb-8">
+              <li className="flex items-center text-gray-300">
+                <span className="text-green-400 mr-3">✓</span> Maksimal 3 todos
+              </li>
+              <li className="flex items-center text-gray-300">
+                <span className="text-green-400 mr-3">✓</span> Unlimited subtasks
+              </li>
+              <li className="flex items-center text-gray-300">
+                <span className="text-green-400 mr-3">✓</span> Drag & drop
+              </li>
+            </ul>
+            <button className="block w-full text-center bg-gray-700 hover:bg-gray-600 text-white font-semibold py-3 rounded-xl transition-all duration-200">
+              Paket Aktif
             </button>
           </div>
-        ))}
+
+          <div className="bg-gradient-to-br from-yellow-400 to-orange-500 p-8 rounded-3xl shadow-2xl border-2 border-yellow-400 transform scale-105">
+            <div className="text-center mb-6">
+              <div className="inline-block bg-white text-orange-500 text-xs font-bold px-3 py-1 rounded-full mb-4">⭐ POPULER</div>
+              <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+                <svg className="w-10 h-10 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                </svg>
+              </div>
+              <h3 className="text-3xl font-bold text-white mb-2">Premium</h3>
+              <div className="text-5xl font-bold text-white mb-4">Rp 50K</div>
+              <p className="text-white/90">Per bulan</p>
+            </div>
+            <ul className="space-y-4 mb-8">
+              <li className="flex items-center text-white">
+                <span className="text-white mr-3">✓</span> Unlimited todos
+              </li>
+              <li className="flex items-center text-white">
+                <span className="text-white mr-3">✓</span> Unlimited subtasks
+              </li>
+              <li className="flex items-center text-white">
+                <span className="text-white mr-3">✓</span> Drag & drop
+              </li>
+              <li className="flex items-center text-white">
+                <span className="text-white mr-3">✓</span> Priority support
+              </li>
+            </ul>
+            <button 
+              onClick={() => window.location.href = '/premium'}
+              className="block w-full text-center bg-white text-orange-500 hover:bg-gray-100 font-bold py-3 rounded-xl transition-all duration-200 shadow-lg"
+            >
+              Upgrade Sekarang
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
-export default Plans;
+export default Plan;

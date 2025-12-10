@@ -1,35 +1,17 @@
 import { useEffect, useState } from "react";
 import { todoService } from "../../services/todoService";
-import { Link, useNavigate } from "react-router-dom";
-import AuthController from "../../controllers/AuthController";
+import { Link } from "react-router-dom";
 
 function Dashboard() {
-  const navigate = useNavigate();
-  const { user } = AuthController();
   const [todos, setTodos] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Redirect admin to admin panel
-  useEffect(() => {
-    if (user?.role === 'admin') {
-      navigate('/admin/premium');
-      return;
-    }
-  }, [user, navigate]);
+
 
   useEffect(() => {
-    const fetchTodos = async () => {
-      try {
-        const data = await todoService.getAll();
-        setTodos(data);
-      } catch (err) {
-        console.error("Gagal ambil data todos", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchTodos();
+    // Simulasi data todos
+    setTodos([{id: 1, title: 'Sample Todo'}]);
+    setLoading(false);
   }, []);
 
   return (

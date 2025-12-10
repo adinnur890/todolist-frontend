@@ -17,8 +17,17 @@ function Register() {
   const handleRegiter = async (e) => {
     e.preventDefault();
 
+    if (form.password.length < 6) {
+      Swal.fire({
+        icon: "error",
+        title: "Password Terlalu Pendek",
+        text: "Password minimal 6 karakter"
+      });
+      return;
+    }
+
     Swal.fire({
-      title: "Register...",
+      title: "Mendaftarkan akun...",
       allowOutsideClick: false,
       didOpen: () => {
         Swal.showLoading();
@@ -29,14 +38,17 @@ function Register() {
       await register(form, navigate);
       Swal.fire({
         icon: "success",
-        title: "Berhasil Register",
-        text: "Pendaftaran berhasil silahkan login"
+        title: "Berhasil Daftar!",
+        text: "Akun berhasil dibuat. Silahkan login dengan akun Anda.",
+        confirmButtonText: "Login Sekarang"
+      }).then(() => {
+        navigate("/login");
       }); 
     } catch (err) {
       Swal.fire({
-          icon: "error",
-          title: "Gagal Register",
-          text: err.response?.data?.message || "Pendaftaran gagal, silahkan coba lagi nanti",
+        icon: "error",
+        title: "Gagal Mendaftar",
+        text: err.response?.data?.message || "Email sudah terdaftar atau terjadi kesalahan",
       });
     }
   };

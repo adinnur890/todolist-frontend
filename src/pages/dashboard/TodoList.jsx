@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
-import { todoService } from "../../services/todoService";
-import AuthController from "../../controllers/AuthController";
 import Swal from "sweetalert2";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 function TodoList() {
   const [modal, setModal] = useState(false);
@@ -13,72 +11,52 @@ function TodoList() {
     title: "",
     description: "",
   });
-  const user = AuthController((state) => state.user);
-  const navigate = useNavigate();
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
 
-  // Redirect admin to admin panel
-  useEffect(() => {
-    if (user?.role === 'admin') {
-      navigate('/admin/premium');
-      return;
-    }
-  }, [user, navigate]);
-
-  const handleStoreTask = async (e) => {
+  const handleStoreTask = (e) => {
     e.preventDefault();
-
-    Swal.fire({
-      title: editId ? "Menyimpan perubahan..." : "Menyimpan...",
-      allowOutsideClick: false,
-      didOpen: () => {
-        Swal.showLoading();
-      },
-    });
-
-    try {
-      if (editId) {
-        await todoService.update(editId, form);
-      } else {
-        await todoService.create(form);
-      }
-      await fetchTodos();
-      setForm({ title: "", description: "" });
-      setEditId(null);
-      setModal(false);
-      Swal.fire({
-        icon: "success",
-        title: "Berhasil",
-        text: editId
-          ? "Perubahan berhasil disimpan"
-          : "Todo berhasil ditambahkan",
-      });
-    } catch (err) {
-      console.error("Error saving todo:", err);
-      console.error("Error response:", err.response?.data);
-      const errorMsg = err.response?.data?.message || 
-                       err.response?.data?.error || 
-                       "Terjadi kesalahan saat menyimpan task.";
-      Swal.fire({
-        icon: "error",
-        title: "Gagal",
-        text: errorMsg,
-      });
+    
+    const newTodo = {
+      id: editId || Date.now(),
+      title: form.title,
+      description: form.description,
+      completed: false
+    };
+    
+    let newTodos;
+    if (editId) {
+      newTodos = todos.map(todo => todo.id === editId ? newTodo : todo);
+    } else {
+      newTodos = [...todos, newTodo];
     }
+    
+    setTodos(newTodos);
+    localStorage.setItem('todos', JSON.stringify(newTodos));
+    
+    setForm({ title: "", description: "" });
+    setEditId(null);
+    setModal(false);
+    
+    Swal.fire({
+      icon: "success",
+      title: "Berhasil",
+      text: editId ? "Perubahan berhasil disimpan" : "Todo berhasil ditambahkan",
+    });
   };
 
-  const fetchTodos = async () => {
-    setLoading(true);
-    try {
-      const data = await todoService.getAll();
-      setTodos(data);
-    } catch (error) {
-      console.error("Gagal mengambil todos:", error);
+  useEffect(() => {
+    const savedTodos = JSON.parse(localStorage.getItem('todos') || '[]');
+    if (savedTodos.length === 0) {
+      const sampleTodos = [
+        { id: 1, title: 'Sample Todo 1', description: 'Ini adalah contoh todo pertama', completed: false },
+        { id: 2, title: 'Sample Todo 2', description: 'Ini adalah contoh todo kedua', completed: true }
+      ];
+      setTodos(sampleTodos);
+      localStorage.setItem('todos', JSON.stringify(sampleTodos));
+    } else {
+      setTodos(savedTodos);
     }
     setLoading(false);
-  };
-
-  useEffect(() => {
-    fetchTodos();
   }, []);
 
   const handleChange = (e) => {
@@ -90,13 +68,11 @@ function TodoList() {
   };
 
   const openAddModal = () => {
-    // Cek apakah user premium atau tidak - lebih ketat
     const isPremium = user?.is_premium === true || 
                       user?.is_premium === 1 || 
                       user?.is_premium === "1" ||
                       user?.is_premium === "true";
     
-    // Jika bukan premium dan sudah ada 3 todos, tampilkan alert upgrade
     if (!isPremium && todos.length >= 3) {
       Swal.fire({
         title: "Upgrade ke Premium",
@@ -107,7 +83,7 @@ function TodoList() {
         cancelButtonText: "Batal",
       }).then((result) => {
         if (result.isConfirmed) {
-          navigate("/plans");
+          window.location.href = "/premium";
         }
       });
       return;
@@ -118,7 +94,7 @@ function TodoList() {
     setModal(true);
   };
 
-  const openEditModal = async (todo) => {
+  const openEditModal = (todo) => {
     setEditId(todo.id);
     setForm({
       title: todo.title,
@@ -140,29 +116,15 @@ function TodoList() {
     });
 
     if (result.isConfirmed) {
+      const newTodos = todos.filter(todo => todo.id !== id);
+      setTodos(newTodos);
+      localStorage.setItem('todos', JSON.stringify(newTodos));
+      
       Swal.fire({
-        title: "Menghapus...",
-        allowOutsideClick: false,
-        didOpen: () => {
-          Swal.showLoading();
-        },
+        icon: "success",
+        title: "Berhasil",
+        text: "Todo berhasil dihapus.",
       });
-
-      try {
-        await todoService.delete(id);
-        await fetchTodos();
-        Swal.fire({
-          icon: "success",
-          title: "Berhasil",
-          text: "Todo berhasil dihapus.",
-        });
-      } catch {
-        Swal.fire({
-          icon: "error",
-          title: "Gagal",
-          text: "Terjadi kesalahan saat menghapus.",
-        });
-      }
     }
   };
 
@@ -186,13 +148,10 @@ function TodoList() {
           <span>{todos.length} {user?.is_premium ? "Todos" : "/ 3 Todos"}</span>
         </div>
       </div>
+      
       {modal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-6 backdrop-blur">
-          <div
-            className="bg-gray-900 rounded-lg shadow-lg p-6 w-full max-w-md"
-            data-aos="fade-up"
-            data-aos-duration="500"
-          >
+          <div className="bg-gray-900 rounded-lg shadow-lg p-6 w-full max-w-md">
             <h2 className="text-xl text-white font-bold mb-4">
               {editId ? "Edit Todo" : "Tambah Todo"}
             </h2>
@@ -204,7 +163,7 @@ function TodoList() {
                   name="title"
                   value={form.title}
                   onChange={handleChange}
-                  className="w-full border border-white text-white px-3 py-2 rounded"
+                  className="w-full border border-white text-black px-3 py-2 rounded"
                   required
                 />
               </div>
@@ -214,7 +173,7 @@ function TodoList() {
                   name="description"
                   value={form.description}
                   onChange={handleChange}
-                  className="w-full border border-white text-white px-3 py-2 rounded"
+                  className="w-full border border-white text-black px-3 py-2 rounded"
                   rows="3"
                   required
                 ></textarea>
@@ -256,8 +215,6 @@ function TodoList() {
             <div
               key={todo.id}
               className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-5 hover:shadow-2xl cursor-pointer transform hover:scale-105 transition-all duration-300 border border-gray-700 hover:border-yellow-400"
-              data-aos="fade-up"
-              data-aos-delay={index * 100}
             >
               <div className="flex justify-between items-start mb-3">
                 <Link

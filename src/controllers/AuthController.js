@@ -1,7 +1,8 @@
   import axios from "axios";
 import { create } from "zustand";
 
-const baseUrl = "https://todolistpremium.ct.ws/backend_tododin/public/api";
+// Railway backend URL
+const baseUrl = "https://your-railway-backend.up.railway.app/api";
 const savedToken = localStorage.getItem("token");
 const savedUserRaw = localStorage.getItem("user");
 const savedUser =
@@ -41,59 +42,42 @@ const AuthController = create((set) => ({
 
 
   login: async (email, password, navigate) => {
-    try {
-      // Coba API dulu
-      const cleanEmail = email.replace('mailto:', '');
-      
-      const res = await axios.post(`${baseUrl}/login`, {
-        email: cleanEmail,
-        password,
-      }, {
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        timeout: 3000
-      });
-      
-      const { token, user } = res.data;
-      set({ token, user, error: null });
-      localStorage.setItem("token", token);
-      localStorage.setItem("user", JSON.stringify(user));
-
-      if (user.role === 'admin') {
-        navigate("/admin/premium");
-      } else {
-        navigate("/todo-list");
-      }
-    } catch (err) {
-      // Fallback - buat user otomatis
-      const cleanEmail = email.replace('mailto:', '');
-      
-      if (cleanEmail && password) {
-        const user = {
-          id: Date.now(),
-          name: cleanEmail.split('@')[0],
-          email: cleanEmail,
-          role: cleanEmail === 'adinadmin@gmail.com' ? 'admin' : 'user',
-          is_premium: cleanEmail === 'adinadmin@gmail.com' ? 1 : 0
-        };
-        
-        const token = "demo-" + Date.now();
-        
-        set({ token, user, error: null });
-        localStorage.setItem("token", token);
-        localStorage.setItem("user", JSON.stringify(user));
-        
-        if (user.role === 'admin') {
-          navigate("/admin/premium");
-        } else {
-          navigate("/todo-list");
-        }
-      } else {
-        set({ error: "Masukkan email dan password" });
-        throw new Error("Masukkan email dan password");
-      }
+    const cleanEmail = email.replace('mailto:', '');
+    
+    if (!cleanEmail || !password) {
+      set({ error: "Masukkan email dan password" });
+      return;
     }
+
+    // Cek user terdaftar
+    const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+    const foundUser = registeredUsers.find(user => 
+      user.email === cleanEmail && user.password === password
+    );
+    
+    if (!foundUser && cleanEmail !== 'adinadmin@gmail.com') {
+      set({ error: "Email atau password salah" });
+      throw new Error("Email atau password salah");
+    }
+
+    const user = foundUser || {
+      id: 1,
+      name: 'Admin',
+      email: cleanEmail,
+      role: 'admin',
+      is_premium: 1
+    };
+    
+    user.role = cleanEmail === 'adinadmin@gmail.com' ? 'admin' : 'user';
+    user.is_premium = cleanEmail === 'adinadmin@gmail.com' ? 1 : 0;
+    
+    const token = "token-" + Date.now();
+    
+    localStorage.setItem('token', token);
+    localStorage.setItem('user', JSON.stringify(user));
+    set({ token, user, error: null });
+    
+    window.location.replace('/dashboard');
   },
 
   logout: async () => {
@@ -114,22 +98,44 @@ const AuthController = create((set) => ({
 
   register: async (data, navigate) => {
     try {
-      // Coba API dulu
       const cleanData = {
-        ...data,
-        email: data.email.replace('mailto:', '')
+        name: data.name,
+        email: data.email.replace('mailto:', ''),
+        password: data.password
       };
       
-      await axios.post(`${baseUrl}/register`, cleanData, {
+      // Kirim ke backend untuk simpan ke database
+      const response = await axios.post(`${baseUrl}/register.php`, cleanData, {
         headers: {
           'Content-Type': 'application/json'
-        },
-        timeout: 3000
+        }
       });
+      
       set({ error: null });
       navigate("/login");
     } catch (err) {
-      // Fallback - registrasi selalu berhasil
+      console.log('Backend error:', err);
+      // Jika backend error, fallback ke localStorage
+      const cleanEmail = data.email.replace('mailto:', '');
+      const existingUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+      const emailExists = existingUsers.find(user => user.email === cleanEmail);
+      
+      if (emailExists) {
+        set({ error: "Email sudah terdaftar" });
+        throw new Error("Email sudah terdaftar");
+      }
+      
+      const newUser = {
+        id: Date.now(),
+        name: data.name,
+        email: cleanEmail,
+        password: data.password,
+        created_at: new Date().toISOString()
+      };
+      
+      existingUsers.push(newUser);
+      localStorage.setItem('registeredUsers', JSON.stringify(existingUsers));
+      
       set({ error: null });
       navigate("/login");
     }
